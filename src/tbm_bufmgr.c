@@ -48,6 +48,8 @@ int bTrace;
 int bDlog;
 #endif
 
+int b_dump_queue;
+
 #define PREFIX_LIB    "libtbm_"
 #define SUFFIX_LIB    ".so"
 #define DEFAULT_LIB   PREFIX_LIB"default"SUFFIX_LIB
@@ -110,6 +112,32 @@ _tbm_util_check_bo_cnt(tbm_bufmgr bufmgr)
 			last_chk_bo_cnt = bufmgr->bo_cnt;
 		}
 	}
+}
+
+static int
+_tbm_util_get_max_surface_size(int * w, int * h)
+{
+	int count = 0;
+	tbm_surface_h surface = NULL, tmp = NULL;
+	tbm_surface_info_s info;
+
+	*w = 0;
+	*h = 0;
+
+	if (gBufMgr == NULL)
+		return count;
+
+	if (!LIST_IS_EMPTY(&gBufMgr->surf_list)) {
+		LIST_FOR_EACH_ENTRY_SAFE(surface, tmp, &gBufMgr->surf_list, item_link) {
+			if (tbm_surface_get_info(surface, &info) == TBM_SURFACE_ERROR_NONE) {
+				count++;
+				if (*w < info.width) *w = info.width;
+				if (*h < info.height) *h = info.height;
+			}
+		}
+	}
+
+	return count;
 }
 
 static void
@@ -1408,6 +1436,63 @@ tbm_bufmgr_debug_trace(tbm_bufmgr bufmgr, int onoff)
 	TBM_LOG_D("bufmgr=%p onoff=%d\n", bufmgr, onoff);
 	bTrace = onoff;
 #endif
+}
+
+int
+tbm_bufmgr_debug_queue_dump(char *path, int count, int onoff)
+{
+	TBM_LOG_D("path=%s count=%d onoff=%d\n", path, count, onoff);
+
+	if (onoff == 1) {
+
+		TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
+
+		int w = 0, h = 0;
+		if (_tbm_util_get_max_surface_size(&w, &h) == 0) {
+			TBM_LOG_I("No tbm_surface.\n");
+			return 0;
+		}
+
+		tbm_surface_internal_dump_start(path, w, h, count);
+		b_dump_queue = 1;
+
+	} else if (onoff == 0) {
+
+		tbm_surface_internal_dump_end();
+		b_dump_queue = 0;
+
+	} else {
+		return 0;
+	}
+
+	return 1;
+}
+
+int
+tbm_bufmgr_debug_dump_all(char *path)
+{
+	TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
+
+	TBM_LOG_D("path=%s\n", path);
+	int w = 0, h = 0, count = 0;
+	tbm_surface_h surface = NULL, tmp = NULL;
+
+	count = _tbm_util_get_max_surface_size(&w, &h);
+	if (count == 0) {
+		TBM_LOG_I("No tbm_surface.\n");
+		return 1;
+	}
+
+	tbm_surface_internal_dump_start(path, w, h, count);
+
+	LIST_FOR_EACH_ENTRY_SAFE(surface, tmp, &gBufMgr->surf_list, item_link) {
+		tbm_surface_internal_dump_buffer(surface, "dump_all");
+	}
+
+	tbm_surface_internal_dump_end();
+
+	return 1;
+
 }
 
 /* internal function */

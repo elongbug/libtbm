@@ -457,12 +457,6 @@ void tbm_surface_internal_dump_buffer(tbm_surface_h surface, const char *type);
 void tbm_surface_internal_dump_shm_buffer(void *ptr, int w, int h, int stride, const char *type);
 
 /**
- * @brief Dump all tbm surfaces
- * @param[in] path : the given dump path
- */
-void tbm_surface_internal_dump_all(char *path);
-
-/**
  * @brief check valid tbm surface.
  * @since_tizen 3.0
  * @param[in] surface : the tbm surface.

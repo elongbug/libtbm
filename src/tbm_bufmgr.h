@@ -1036,6 +1036,23 @@ void tbm_bufmgr_debug_show(tbm_bufmgr bufmgr);
  */
 void tbm_bufmgr_debug_trace(tbm_bufmgr bufmgr, int onoff);
 
+/**
+ * @brief Dump all tbm surfaces
+ * @param[in] path : the given dump path
+ * @return 1 if this function succeeds, otherwise 0.
+ */
+int tbm_bufmgr_debug_dump_all(char *path);
+
+/**
+ * @brief Start the dump debugging for queue.
+ * @since_tizen 3.0
+ * @param[in] path : the given dump path
+ * @param[in] count : the dump count number
+ * @param[in] onoff : 1 is on, and 0 is off, if onoff==0 path and count are ignored
+ * @return 1 if this function succeeds, otherwise 0.
+ */
+int tbm_bufmgr_debug_queue_dump(char *path, int count, int onoff);
+
 int tbm_bufmgr_bind_native_display(tbm_bufmgr bufmgr, void *NativeDisplay);
 
 #ifdef __cplusplus

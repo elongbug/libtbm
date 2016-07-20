@@ -67,6 +67,8 @@ extern int bDebug;
 extern int bTrace;
 #endif /* TRACE */
 
+extern int b_dump_queue;
+
 #ifdef HAVE_DLOG
 #include <dlog.h>
 

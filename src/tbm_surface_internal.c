@@ -327,32 +327,6 @@ _tbm_surface_internal_destroy(tbm_surface_h surface)
 	}
 }
 
-static int
-_tbm_surface_get_max_size(int * w, int * h)
-{
-	int count = 0;
-	tbm_surface_h surface = NULL, tmp = NULL;
-	tbm_surface_info_s info;
-
-	*w = 0;
-	*h = 0;
-
-	if (g_surface_bufmgr == NULL)
-		return count;
-
-	if (!LIST_IS_EMPTY(&g_surface_bufmgr->surf_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(surface, tmp, &g_surface_bufmgr->surf_list, item_link) {
-			if (tbm_surface_get_info(surface, &info) == TBM_SURFACE_ERROR_NONE) {
-				count++;
-				if (*w < info.width) *w = info.width;
-				if (*h < info.height) *h = info.height;
-			}
-		}
-	}
-
-	return count;
-}
-
 int
 tbm_surface_internal_is_valid(tbm_surface_h surface)
 {
@@ -1839,26 +1813,5 @@ void tbm_surface_internal_dump_shm_buffer(void *ptr, int w, int h, int  stride, 
 	g_dump_info->link = next_link;
 
 	TBM_LOG_I("Dump %s \n", buf_info->name);
-}
-
-void tbm_surface_internal_dump_all(char *path)
-{
-	TBM_RETURN_IF_FAIL(path != NULL);
-	int w = 0, h = 0, count = 0;
-	tbm_surface_h surface = NULL, tmp = NULL;
-
-	count = _tbm_surface_get_max_size(&w, &h);
-	if (count == 0) {
-		TBM_LOG_I("No tbm_surface.\n");
-		return;
-	}
-
-	tbm_surface_internal_dump_start(path, w, h, count);
-
-	LIST_FOR_EACH_ENTRY_SAFE(surface, tmp, &g_surface_bufmgr->surf_list, item_link) {
-		tbm_surface_internal_dump_buffer(surface, "dump_all");
-	}
-
-	tbm_surface_internal_dump_end();
 }
 /*LCOV_EXCL_STOP*/

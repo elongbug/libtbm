@@ -674,6 +674,9 @@ tbm_surface_queue_enqueue(tbm_surface_queue_h
 	TBM_RETURN_VAL_IF_FAIL(surface != NULL,
 			       TBM_SURFACE_QUEUE_ERROR_INVALID_SURFACE);
 
+	if (b_dump_queue)
+		tbm_surface_internal_dump_buffer(surface, "enqueue");
+
 	pthread_mutex_lock(&surface_queue->lock);
 
 	TBM_QUEUE_TRACE("tbm_surface_queue(%p) tbm_surface(%p)\n", surface_queue, surface);
@@ -859,6 +862,9 @@ tbm_surface_queue_acquire(tbm_surface_queue_h
 	TBM_QUEUE_TRACE("tbm_surface_queue(%p) tbm_surface(%p)\n", surface_queue, *surface);
 
 	pthread_mutex_unlock(&surface_queue->lock);
+
+	if (b_dump_queue)
+		tbm_surface_internal_dump_buffer(*surface, "acquire");
 
 	return TBM_SURFACE_QUEUE_ERROR_NONE;
 }
