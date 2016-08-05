@@ -169,6 +169,7 @@ enum TBM_BUFMGR_CAPABILITY {
 	TBM_BUFMGR_CAPABILITY_NONE = 0,					/**< Not Support capability*/
 	TBM_BUFMGR_CAPABILITY_SHARE_KEY = (1 << 0),		/**< Support sharing buffer by tbm key */
 	TBM_BUFMGR_CAPABILITY_SHARE_FD = (1 << 1),		/**< Support sharing buffer by tbm fd */
+	TBM_BUFMGR_CAPABILITY_TBM_SYNC = (1 << 2),		/**< Support tbm sync */
 };
 
 #ifdef __cplusplus

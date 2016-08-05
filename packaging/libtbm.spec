@@ -99,5 +99,6 @@ rm -f %{_unitdir_user}/default.target.wants/tbm-drm-auth-user.path
 %{_includedir}/tbm_bufmgr_backend.h
 %{_includedir}/tbm_type.h
 %{_includedir}/tbm_drm_helper.h
+%{_includedir}/tbm_sync.h
 %{_libdir}/libtbm.so
 %{_libdir}/pkgconfig/libtbm.pc

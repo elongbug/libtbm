@@ -19,7 +19,8 @@ libtbm_la_SOURCES = \
 	tbm_bufmgr_backend.c \
 	tbm_bufmgr.c \
 	tbm_drm_helper_server.c \
-	tbm_drm_helper_client.c
+	tbm_drm_helper_client.c \
+	tbm_sync.c
 
 nodist_libtbm_la_SOURCES =		\
 	wayland-tbm-drm-auth-server-protocol.h	\
@@ -38,6 +39,6 @@ nodist_libtbm_la_SOURCES =		\
 BUILT_SOURCES = $(nodist_libtbm_la_SOURCES)
 
 libtbmincludedir=$(includedir)
-libtbminclude_HEADERS = tbm_bufmgr.h tbm_surface.h tbm_bufmgr_backend.h tbm_type.h tbm_surface_internal.h tbm_surface_queue.h tbm_drm_helper.h
+libtbminclude_HEADERS = tbm_bufmgr.h tbm_surface.h tbm_bufmgr_backend.h tbm_type.h tbm_surface_internal.h tbm_surface_queue.h tbm_drm_helper.h tbm_sync.h
 
 CLEANFILES = $(BUILT_SOURCES)
