@@ -283,6 +283,7 @@ typedef struct {
 	struct list_head item_link;
 } tbm_user_data;
 
+tbm_bufmgr _tbm_bufmgr_get_bufmgr(void);
 int _tbm_bo_set_surface(tbm_bo bo, tbm_surface_h surface);
 int _tbm_surface_is_valid(tbm_surface_h surface);
 

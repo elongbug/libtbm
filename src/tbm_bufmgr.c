@@ -1383,6 +1383,12 @@ tbm_bufmgr_debug_trace(tbm_bufmgr bufmgr, int onoff)
 }
 
 /* internal function */
+tbm_bufmgr
+_tbm_bufmgr_get_bufmgr(void)
+{
+	return gBufMgr;
+}
+
 int
 _tbm_bo_set_surface(tbm_bo bo, tbm_surface_h surface)
 {
