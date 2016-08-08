@@ -71,6 +71,13 @@ int tbm_backend_init(tbm_bufmgr bufmgr, tbm_bufmgr_backend backend)
 	}
 
 	bufmgr->backend = backend;
+	bufmgr->capabilities = TBM_BUFMGR_CAPABILITY_NONE;
+
+	if (bufmgr->backend->bo_import && bufmgr->backend->bo_export)
+		bufmgr->capabilities |= TBM_BUFMGR_CAPABILITY_SHARE_KEY;
+
+	if (bufmgr->backend->bo_import_fd && bufmgr->backend->bo_export_fd)
+		bufmgr->capabilities |= TBM_BUFMGR_CAPABILITY_SHARE_FD;
 
 	return 1;
 }

@@ -1260,17 +1260,9 @@ tbm_bufmgr_get_capability(tbm_bufmgr bufmgr)
 {
 	TBM_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(bufmgr), 0);
 
-	unsigned int capability = TBM_BUFMGR_CAPABILITY_NONE;
+	TBM_TRACE("tbm_bufmgr(%p) capability(%d)\n", bufmgr, bufmgr->capabilities);
 
-	if (bufmgr->backend->bo_import && bufmgr->backend->bo_export)
-		capability |= TBM_BUFMGR_CAPABILITY_SHARE_KEY;
-
-	if (bufmgr->backend->bo_import_fd && bufmgr->backend->bo_export_fd)
-		capability |= TBM_BUFMGR_CAPABILITY_SHARE_FD;
-
-	TBM_TRACE("tbm_bufmgr(%p) capability(%d)\n", bufmgr, capability);
-
-	return capability;
+	return bufmgr->capabilities;
 }
 
 int

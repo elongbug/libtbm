@@ -233,6 +233,8 @@ struct _tbm_bufmgr {
 
 	int lock_type;				/* lock_type of bufmgr */
 
+	int capabilities;           /* capabilities of bufmgr */
+
 	unsigned int bo_cnt;        /* number of bos */
 
 	struct list_head bo_list;	/* list of bos belonging to bufmgr */
