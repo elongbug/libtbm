@@ -1352,12 +1352,10 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 					strncat(data, "  ", 2);
 
 					value = _tbm_surface_internal_get_debug_data(surf, debug_old_data->key);
-					if (value) {
+					if (value)
 						strncat(data, value, strlen(value) + 1);
-					}
-					else {
+					else
 						strncat(data, "none", strlen("none") + 1);
-					}
 				}
 			}
 			TBM_DEBUG("%s\n", data);

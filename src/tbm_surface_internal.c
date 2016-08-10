@@ -1325,7 +1325,7 @@ tbm_surface_internal_set_debug_data(tbm_surface_h surface, char *key, char *valu
 
 	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
 		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &surface->debug_data_list, item_link) {
-			if (!strcmp(old_data->key ,key)) {
+			if (!strcmp(old_data->key, key)) {
 				if (value)
 					old_data->value = strdup(value);
 				else
@@ -1346,9 +1346,8 @@ tbm_surface_internal_set_debug_data(tbm_surface_h surface, char *key, char *valu
 
 	if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
 		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &bufmgr->debug_key_list, item_link) {
-			if (!strcmp(old_data->key ,key)) {
+			if (!strcmp(old_data->key, key))
 				return 1;
-			}
 		}
 	}
 
@@ -1367,9 +1366,8 @@ _tbm_surface_internal_get_debug_data(tbm_surface_h surface, char *key)
 
 	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
 		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &surface->debug_data_list, item_link) {
-			if (!strcmp(old_data->key, key)) {
+			if (!strcmp(old_data->key, key))
 				return old_data->value;
-			}
 		}
 	}
 
