@@ -67,6 +67,16 @@ _tbm_surface_internal_get_time(void)
 	return time / 1000.0;
 }
 
+static void
+_tbm_surface_internal_debug_data_delete(tbm_surface_debug_data *debug_data)
+{
+	LIST_DEL(&debug_data->item_link);
+
+	if (debug_data->key) free(debug_data->key);
+	if (debug_data->value) free(debug_data->value);
+	free(debug_data);
+}
+
 char *
 _tbm_surface_internal_format_to_str(tbm_format format)
 {
@@ -277,6 +287,7 @@ _tbm_surface_internal_destroy(tbm_surface_h surface)
 	int i;
 	tbm_bufmgr bufmgr = surface->bufmgr;
 	tbm_user_data *old_data = NULL, *tmp = NULL;
+	tbm_surface_debug_data *debug_old_data = NULL, *debug_tmp = NULL;
 
 	/* destory the user_data_list */
 	if (!LIST_IS_EMPTY(&surface->user_data_list)) {
@@ -293,6 +304,11 @@ _tbm_surface_internal_destroy(tbm_surface_h surface)
 		surface->bos[i] = NULL;
 	}
 
+	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
+		LIST_FOR_EACH_ENTRY_SAFE(debug_old_data, debug_tmp, &surface->debug_data_list, item_link)
+			_tbm_surface_internal_debug_data_delete(debug_old_data);
+	}
+
 	LIST_DEL(&surface->item_link);
 
 	free(surface);
@@ -300,6 +316,13 @@ _tbm_surface_internal_destroy(tbm_surface_h surface)
 
 	if (LIST_IS_EMPTY(&bufmgr->surf_list)) {
 		LIST_DELINIT(&bufmgr->surf_list);
+
+		if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
+			LIST_FOR_EACH_ENTRY_SAFE(debug_old_data, debug_tmp, &bufmgr->debug_key_list, item_link) {
+				_tbm_surface_internal_debug_data_delete(debug_old_data);
+			}
+		}
+
 		_deinit_surface_bufmgr();
 	}
 }
@@ -685,6 +708,7 @@ tbm_surface_internal_create_with_flags(int width, int height,
 			_tbm_surface_internal_format_to_str(format), flags, surf);
 
 	LIST_INITHEAD(&surf->user_data_list);
+	LIST_INITHEAD(&surf->debug_data_list);
 
 	LIST_ADD(&surf->item_link, &mgr->surf_list);
 
@@ -797,6 +821,7 @@ tbm_surface_internal_create_with_bos(tbm_surface_info_s *info,
 			info->width, info->height, _tbm_surface_internal_format_to_str(info->format), num);
 
 	LIST_INITHEAD(&surf->user_data_list);
+	LIST_INITHEAD(&surf->debug_data_list);
 
 	LIST_ADD(&surf->item_link, &mgr->surf_list);
 
@@ -1271,6 +1296,86 @@ tbm_surface_internal_set_debug_pid(tbm_surface_h surface, unsigned int pid)
 	surface->debug_pid = pid;
 }
 
+static tbm_surface_debug_data *
+_tbm_surface_internal_debug_data_create(char *key, char *value)
+{
+	tbm_surface_debug_data *debug_data = NULL;
+
+	debug_data = calloc(1, sizeof(tbm_surface_debug_data));
+	if (!debug_data)
+		return NULL;
+
+	if (key) debug_data->key = strdup(key);
+	if (value) debug_data->value = strdup(value);
+
+	return debug_data;
+}
+
+int
+tbm_surface_internal_set_debug_data(tbm_surface_h surface, char *key, char *value)
+{
+	TBM_RETURN_VAL_IF_FAIL(tbm_surface_internal_is_valid(surface), 0);
+	TBM_RETURN_VAL_IF_FAIL(key, 0);
+
+	tbm_surface_debug_data *debug_data = NULL;
+	tbm_surface_debug_data *old_data = NULL, *tmp = NULL;
+	tbm_bufmgr bufmgr = surface->bufmgr;
+
+	TBM_RETURN_VAL_IF_FAIL(bufmgr, 0);
+
+	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
+		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &surface->debug_data_list, item_link) {
+			if (!strcmp(old_data->key ,key)) {
+				if (value)
+					old_data->value = strdup(value);
+				else
+					old_data->value = NULL;
+			}
+		}
+	}
+
+	debug_data = _tbm_surface_internal_debug_data_create(key, value);
+	if (!debug_data) {
+		TBM_TRACE("error: tbm_surface(%p) key(%s) value(%s)\n", surface, key, value);
+		return 0;
+	}
+
+	TBM_TRACE("tbm_surface(%p) key(%s) value(%s)\n", surface, key, value);
+
+	LIST_ADD(&debug_data->item_link, &surface->debug_data_list);
+
+	if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
+		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &bufmgr->debug_key_list, item_link) {
+			if (!strcmp(old_data->key ,key)) {
+				return 1;
+			}
+		}
+	}
+
+	debug_data = _tbm_surface_internal_debug_data_create(key, NULL);
+	LIST_ADD(&debug_data->item_link, &bufmgr->debug_key_list);
+
+	return 1;
+}
+
+char *
+_tbm_surface_internal_get_debug_data(tbm_surface_h surface, char *key)
+{
+	TBM_RETURN_VAL_IF_FAIL(tbm_surface_internal_is_valid(surface), NULL);
+
+	tbm_surface_debug_data *old_data = NULL, *tmp = NULL;
+
+	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
+		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &surface->debug_data_list, item_link) {
+			if (!strcmp(old_data->key, key)) {
+				return old_data->value;
+			}
+		}
+	}
+
+	return NULL;
+}
+
 typedef struct _tbm_surface_dump_info tbm_surface_dump_info;
 typedef struct _tbm_surface_dump_buf_info tbm_surface_dump_buf_info;
 
@@ -1561,7 +1666,6 @@ tbm_surface_internal_dump_end(void)
 			}
 		}
 	}
-
 
 	/* free resources */
 	if (!LIST_IS_EMPTY(&g_dump_info->surface_list)) {

@@ -241,6 +241,8 @@ struct _tbm_bufmgr {
 
 	struct list_head surf_list;	/* list of surfaces belonging to bufmgr */
 
+	struct list_head debug_key_list; /* list of debug data key list belonging to bufmgr */
+
 	void *module_data;
 
 	tbm_bufmgr_backend backend;	/* bufmgr backend */
@@ -272,6 +274,8 @@ struct _tbm_surface {
 	struct list_head item_link; /* link of surface */
 
 	struct list_head user_data_list;	/* list of the user_date in surface */
+
+	struct list_head debug_data_list;	/* list of debug data */
 };
 
 typedef struct {
@@ -282,6 +286,14 @@ typedef struct {
 	/* link of user_data */
 	struct list_head item_link;
 } tbm_user_data;
+
+typedef struct {
+	char *key;
+	char *value;
+
+	/* link of user_data */
+	struct list_head item_link;
+} tbm_surface_debug_data;
 
 tbm_bufmgr _tbm_bufmgr_get_bufmgr(void);
 int _tbm_bo_set_surface(tbm_bo bo, tbm_surface_h surface);
@@ -296,6 +308,7 @@ unsigned int tbm_surface_internal_get_height(tbm_surface_h surface);
 tbm_format tbm_surface_internal_get_format(tbm_surface_h surface);
 unsigned int _tbm_surface_internal_get_debug_pid(tbm_surface_h surface);
 char *_tbm_surface_internal_format_to_str(tbm_format format);
+char * _tbm_surface_internal_get_debug_data(tbm_surface_h surface, char *key);
 
 tbm_user_data *user_data_lookup(struct list_head *user_data_list,
 				unsigned long key);

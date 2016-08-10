@@ -350,6 +350,16 @@ void tbm_surface_internal_set_debug_pid(tbm_surface_h surface,
 					unsigned int pid);
 
 /**
+ * @brief Set the string value to the tbm_surface for debugging.
+ * @since_tizen 3.0
+ * @param[in] surface : the tbm_surface_h
+ * @param[in] key : the key for debugging
+ * @param[in] value : the value for debugging
+ */
+int tbm_surface_internal_set_debug_data(tbm_surface_h surface,
+					char *key, char *value);
+
+/**
  * @brief Adds a user_data to the tbm surface.
  * @since_tizen 3.0
  * @param[in] surface : the tbm surface.

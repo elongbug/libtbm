@@ -634,6 +634,9 @@ tbm_bufmgr_init(int fd)
 	/* intialize surf_list */
 	LIST_INITHEAD(&gBufMgr->surf_list);
 
+	/* intialize debug_key_list */
+	LIST_INITHEAD(&gBufMgr->debug_key_list);
+
 	pthread_mutex_unlock(&gLock);
 	return gBufMgr;
 }
@@ -1294,6 +1297,9 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 	int i;
 	char app_name[255] = {0,};
 	unsigned int pid = 0;
+	char title[255] = {0,};
+	char data[255] = {0,};
+	tbm_surface_debug_data *debug_old_data = NULL, *debug_tmp = NULL;
 
 	pthread_mutex_lock(&gLock);
 
@@ -1303,11 +1309,20 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 	TBM_DEBUG("============TBM DEBUG: %s(%d)===========================\n",
 		  app_name, getpid());
 	memset(app_name, 0x0, 255 * sizeof(char));
+	snprintf(title, 255, "%s", "no  surface     refcnt  width  height  bpp  size    n_b  n_p  flags  format    app_name       ");
+	if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
+		LIST_FOR_EACH_ENTRY_SAFE(debug_old_data, debug_tmp, &bufmgr->debug_key_list, item_link) {
+			strncat(title, "  ", 2);
+			strncat(title, debug_old_data->key, strlen(debug_old_data->key) + 1);
+		}
+	}
 
 	TBM_DEBUG("[tbm_surface information]\n");
-	TBM_DEBUG("no  surface              refcnt  width  height  bpp  size      num_bos num_planes flags format              app_name\n");
+	TBM_DEBUG("%s\n", title);
 	/* show the tbm_surface information in surf_list */
 	if (!LIST_IS_EMPTY(&bufmgr->surf_list)) {
+		char *value = NULL;
+
 		LIST_FOR_EACH_ENTRY_SAFE(surf, tmp_surf, &bufmgr->surf_list, item_link) {
 			pid = _tbm_surface_internal_get_debug_pid(surf);
 			if (!pid) {
@@ -1318,7 +1333,7 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 			_tbm_util_get_appname_from_pid(pid, app_name);
 			_tbm_util_get_appname_brief(app_name);
 
-			TBM_DEBUG("%-4d%-23p%-6d%-7d%-8d%-5d%-12d%-10d%-9d%-4d%-20s%s\n",
+			snprintf(data, 255, "%-2d  %-9p    %-4d  %-5d  %-6d  %-3d  %-6d   %-2d   %-2d    %-3d  %-8s  %-15s",
 				  ++surf_cnt,
 				  surf,
 				  surf->refcnt,
@@ -1329,8 +1344,23 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 				  surf->num_bos,
 				  surf->num_planes,
 				  surf->flags,
-				  _tbm_surface_internal_format_to_str(surf->info.format),
+				  _tbm_surface_internal_format_to_str(surf->info.format) + 11,
 				  app_name);
+
+			if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
+				LIST_FOR_EACH_ENTRY_SAFE(debug_old_data, debug_tmp, &bufmgr->debug_key_list, item_link) {
+					strncat(data, "  ", 2);
+
+					value = _tbm_surface_internal_get_debug_data(surf, debug_old_data->key);
+					if (value) {
+						strncat(data, value, strlen(value) + 1);
+					}
+					else {
+						strncat(data, "none", strlen("none") + 1);
+					}
+				}
+			}
+			TBM_DEBUG("%s\n", data);
 
 			for (i = 0; i < surf->num_bos; i++) {
 				TBM_DEBUG(" bo:%-12p  %-26d%-10d\n",
@@ -1347,12 +1377,12 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 	TBM_DEBUG("\n");
 
 	TBM_DEBUG("[tbm_bo information]\n");
-	TBM_DEBUG("no  bo                   refcnt  size     lock_cnt map_cnt flags surface\n");
+	TBM_DEBUG("no  bo          refcnt  size    lock_cnt  map_cnt  flags  surface\n");
 
 	/* show the tbm_bo information in bo_list */
 	if (!LIST_IS_EMPTY(&bufmgr->bo_list)) {
 		LIST_FOR_EACH_ENTRY_SAFE(bo, tmp_bo, &bufmgr->bo_list, item_link) {
-			TBM_DEBUG("%-4d%-11p   %-6d%-12d%-9d%-9d%-4d%-11p\n",
+			TBM_DEBUG("%-4d%-11p   %-4d  %-6d     %-5d     %-4d    %-3d  %-11p\n",
 				  ++bo_cnt,
 				  bo,
 				  bo->ref_cnt,
