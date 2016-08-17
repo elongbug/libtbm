@@ -588,7 +588,7 @@ tbm_sync_fence_import(int fd, tbm_sync_error_e *error)
 			TBM_LOG_E("%s\n", "TBM_SYNC calloc failed");
 			close(new_fd);
 		} else {
-			fence_handle->fd = fd;
+			fence_handle->fd = new_fd;
 			fence = fence_handle;
 		}
 	}
