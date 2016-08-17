@@ -161,6 +161,7 @@ tbm_sync_timeline_create(tbm_sync_error_e *error)
 			TBM_LOG_E("%s\n", "TBM_SYNC calloc failed");
 			close(fd);
 		} else {
+			timeline_handle->fd = fd;
 			timeline = timeline_handle;
 		}
 	}
@@ -344,7 +345,7 @@ tbm_sync_fence_create(tbm_sync_timeline_h timeline, const char *name, unsigned i
 		struct _tbm_sync_timeline *timeline_handle = timeline;
 		struct sw_sync_create_fence_data {
 			__u32 value;
-			char *name;
+			char name[32];
 			__s32 fence;
 		} data;
 
