@@ -70,13 +70,23 @@ rm -rf %{buildroot}
 %__mkdir_p %{_unitdir}/graphical.target.wants
 ln -sf ../tbm-drm-auth.path %{_unitdir}/graphical.target.wants/
 
+%if "%{?profile}" == "mobile" || "%{?profile}" == "wearable"
+%__mkdir_p %{_unitdir_user}/basic.target.wants
+ln -sf ../tbm-drm-auth-user.path %{_unitdir_user}/basic.target.wants/
+%else
 %__mkdir_p %{_unitdir_user}/default.target.wants
 ln -sf ../tbm-drm-auth-user.path %{_unitdir_user}/default.target.wants/
+%endif
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
 rm -f %{_unitdir}/graphical.target.wants/tbm-drm-auth.path
+
+%if "%{?profile}" == "mobile" || "%{?profile}" == "wearable"
+rm -f %{_unitdir_user}/basic.target.wants/tbm-drm-auth-user.path
+%else
 rm -f %{_unitdir_user}/default.target.wants/tbm-drm-auth-user.path
+%endif
 
 %files
 %manifest %{name}.manifest
