@@ -5,7 +5,7 @@ libtbm
 Copyright 2012 - 2016 Samsung Electronics co., Ltd. All Rights Reserved.
 
 Contact: SooChan Lim <sc1.lim@samsung.com>,
-         Changyeon Lee <cyeon.lee@samsung.com>,
+		 Changyeon Lee <cyeon.lee@samsung.com>,
 		 Boram Park <boram1288.park@samsung.com>,
 		 Sangjin Lee <lsj119@samsung.com>
 
@@ -45,7 +45,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define SYNC_IOC_MERGE               _IOWR(SYNC_IOC_MAGIC, 1, struct sync_merge_data)
 #define SW_SYNC_IOC_MAGIC            'W'
 #define SW_SYNC_IOC_CREATE_FENCE     _IOWR(SW_SYNC_IOC_MAGIC, 0,\
-                                         struct sw_sync_create_fence_data)
+					struct sw_sync_create_fence_data)
 #define SW_SYNC_IOC_INC              _IOW(SW_SYNC_IOC_MAGIC, 1, __u32)
 
 #define SYNC_DEVICE_PATH             "/dev/sw_sync"
@@ -103,15 +103,15 @@ _tbm_sync_check_capability(void)
 #endif
 	struct stat st_buf;
 
-    if (tbm_sync_support)
+	if (tbm_sync_support)
 		return TBM_SYNC_ERROR_NONE;
 
 #ifdef NOT_IMPELMENT_YET
 	/* check the bufmgr */
 	bufmgr = _tbm_bufmgr_get_bufmgr();
-	if (!bufmgr) {
+	if (!bufmgr)
 		return TBM_SYNC_ERROR_INVALID_OPERATION;
-	}
+
 
 	/* check the tbm_sync capability */
 	capabilities = tbm_bufmgr_get_capability(bufmgr);
@@ -200,7 +200,7 @@ tbm_sync_timeline_destroy(tbm_sync_timeline_h timeline)
 done:
 	_tbm_sync_mutex_unlock();
 
-    return ret;
+	return ret;
 }
 
 tbm_sync_timeline_h
