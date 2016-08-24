@@ -1,28 +1,50 @@
 #ifndef _TBM_SYNC_H_
 #define _TBM_SYNC_H_
 
-typedef enum {
-	TBM_SYNC_ERROR_NONE = 0,				/**< Successful */
-	TBM_SYNC_ERROR_INVALID_PARAMETER = -1,  /**< Invalid parameter */
-	TBM_SYNC_ERROR_INVALID_OPERATION = -2,  /**< Invalid Operation */
-} tbm_sync_error_e;
+#include <tbm_bufmgr.h>
 
-typedef void *tbm_sync_timeline_h;
-typedef void *tbm_sync_fence_h;
+/**
+ * @brief Create timeline object.
+ * @return file descriptor for the created timeline on success, -1 otherwise
+ * @remarks close the fd when you no longer need it
+ */
+tbm_fd tbm_sync_timeline_create(void);
 
-tbm_sync_timeline_h tbm_sync_timeline_create(tbm_sync_error_e *error);
-tbm_sync_error_e    tbm_sync_timeline_destroy(tbm_sync_timeline_h timeline);
-tbm_sync_timeline_h tbm_sync_timeline_import(int fd, tbm_sync_error_e *error);
-int                 tbm_sync_timeline_export(tbm_sync_timeline_h timeline, tbm_sync_error_e *error);
-tbm_sync_error_e    tbm_sync_timeline_increase_count(tbm_sync_timeline_h timeline, unsigned int interval);
-unsigned int        tbm_sync_timeline_get_cur_count(tbm_sync_timeline_h timeline, tbm_sync_error_e *error);
+/**
+ * @brief Increase the current value of the timeline.
+ * @param[in] timeline timeline object
+ * @param[in] count amount of increment
+ * @return 1 on success, 0 otherwise
+ */
+int tbm_sync_timeline_inc(tbm_fd timeline, unsigned int count);
 
-tbm_sync_fence_h    tbm_sync_fence_create(tbm_sync_timeline_h timeline, const char *name, unsigned int count_val, tbm_sync_error_e *error);
-tbm_sync_error_e    tbm_sync_fence_destroy(tbm_sync_fence_h fence);
-tbm_sync_error_e    tbm_sync_fence_wait(tbm_sync_fence_h fence, int timeout);
-tbm_sync_fence_h    tbm_sync_fence_merge(tbm_sync_fence_h fence1, tbm_sync_fence_h fence2, const char *name, tbm_sync_error_e *error);
-unsigned int        tbm_sync_fence_get_count_val(tbm_sync_fence_h fence, tbm_sync_error_e *error);
-tbm_sync_fence_h    tbm_sync_fence_import(int fd, tbm_sync_error_e *error);
-int                 tbm_sync_fence_export(tbm_sync_fence_h fence, tbm_sync_error_e *error);
+/**
+ * @brief Create fence object.
+ * @param[in] timeline timeline object on which the fence is created
+ * @param[in] name fence name (only first 31 characters will be used)
+ * @param[in] value timeline point value for the fence
+ * @return file descriptor for the created fence on success, -1 otherwise
+ * @remarks close the fd when you no longer need it
+ */
+tbm_fd tbm_sync_fence_create(tbm_fd timeline, const char *name, unsigned int value);
+
+/**
+ * @brief Wait for the given fence to be signaled
+ * @param[in] fence fence object
+ * @param[in] timeout timeout in milliseconds
+ * @return 1 on success, 0 on failure, -1 on timeout expire
+ * @remarks negative timeout means infinite, timeout 0 returns immediately
+ */
+int tbm_sync_fence_wait(tbm_fd fence, int timeout);
+
+/**
+ * @brief Merge two fences into one
+ * @param[in] name name of the new fence
+ * @param[in] fence1 fence to be merged
+ * @param[in] fence2 fence to be merged
+ * @return file descriptor for the new fence on success, -1 otherwise
+ * @remarks close the fd when you no longer need it
+ */
+tbm_fd tbm_sync_fence_merge(const char *name, tbm_fd fence1, tbm_fd fence2);
 
 #endif /* _TBM_SYNC_H */

@@ -31,7 +31,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 **************************************************************************/
 
-#include "tbm_bufmgr.h"
 #include "tbm_bufmgr_int.h"
 #include "tbm_sync.h"
 
@@ -40,608 +39,141 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <sys/ioctl.h>
 #include <linux/types.h>
 
-#define SYNC_IOC_MAGIC               '>'
-#define SYNC_IOC_WAIT                _IOW(SYNC_IOC_MAGIC, 0, __s32)
-#define SYNC_IOC_MERGE               _IOWR(SYNC_IOC_MAGIC, 1, struct sync_merge_data)
-#define SW_SYNC_IOC_MAGIC            'W'
-#define SW_SYNC_IOC_CREATE_FENCE     _IOWR(SW_SYNC_IOC_MAGIC, 0,\
-					struct sw_sync_create_fence_data)
-#define SW_SYNC_IOC_INC              _IOW(SW_SYNC_IOC_MAGIC, 1, __u32)
+/* IOCTLs for timeline file object. */
+#define TIMELINE_IOC_MAGIC			'W'
+#define TIMELINE_IOC_CREATE_FENCE	_IOWR(TIMELINE_IOC_MAGIC, 0, struct create_fence_data)
+#define TIMELINE_IOC_INC			_IOW(TIMELINE_IOC_MAGIC, 1, __u32)
 
-#define SYNC_DEVICE_PATH             "/dev/sw_sync"
+/* IOCTLs for fence file object. */
+#define FENCE_IOC_MAGIC		'>'
+#define FENCE_IOC_WAIT		_IOW(FENCE_IOC_MAGIC, 0, __s32)
+#define FENCE_IOC_MERGE		_IOWR(FENCE_IOC_MAGIC, 1, struct sync_merge_data)
 
-struct _tbm_sync_timeline {
-	int fd;
+/* Path to the sync device file. */
+#define SYNC_DEVICE_PATH	"/dev/sw_sync"
+
+/* Argument data structure for the timeline.create_fence ioctl. */
+struct create_fence_data {
+	__u32	value;		/* Pt value on the timeline for the fence (IN) */
+	char	name[32];	/* Name of the fence object (IN) */
+	__s32	fence;		/* File descriptor for the created fence (OUT) */
 };
 
-struct _tbm_sync_fence {
-	int fd;
+/* Argument data structure for the fence.merge ioctl. */
+struct sync_merge_data {
+	__s32	fd2;		/* fence to merged with the fence (IN) */
+	char	name[32];	/* Name of the new fence object (IN) */
+	__s32	fence;		/* File descriptor for the new fence (OUT) */
 };
 
-static pthread_mutex_t tbm_sync_lock;
-static int tbm_sync_support = 0;
+#define ERRNO_BUF_SIZE	256
 
-static bool
-_tbm_sync_mutex_init(void)
+static inline void
+_log_errno()
 {
-	static bool tbm_sync_mutex_init = false;
+	/* calling strerror_r() might overwrite errno, so save it. */
+	int		errnum = errno;
+	char	buf[ERRNO_BUF_SIZE];
 
-	if (tbm_sync_mutex_init)
-		return true;
-
-	if (pthread_mutex_init(&tbm_sync_lock, NULL)) {
-		TBM_LOG_E("fail: tbm_sync mutex init\n");
-		return false;
-	}
-
-	tbm_sync_mutex_init = true;
-
-	return true;
+	if (strerror_r(errnum, buf, ERRNO_BUF_SIZE) == 0)
+		TBM_LOG_E("errno : %d(%s)\n", errnum, buf);
+	else
+		TBM_LOG_E("errno : %d()\n", errnum);
 }
 
-static void
-_tbm_sync_mutex_lock(void)
+static inline void
+_copy_string(char *dst, const char *src, size_t size)
 {
-	if (!_tbm_sync_mutex_init())
+	if (size == 0)
 		return;
 
-	pthread_mutex_lock(&tbm_sync_lock);
+	if (src == NULL || size == 1) {
+		*dst = '\0';
+		return;
+	}
+
+	while (size-- != 1) {
+		if ((*dst++ = *src++) == '\0')
+			return;
+	}
+
+	*dst = '\0';
 }
 
-static void
-_tbm_sync_mutex_unlock(void)
+tbm_fd
+tbm_sync_timeline_create(void)
 {
-	pthread_mutex_unlock(&tbm_sync_lock);
-}
+	tbm_fd timeline = open(SYNC_DEVICE_PATH, O_RDWR | O_CLOEXEC);
 
-static tbm_sync_error_e
-_tbm_sync_check_capability(void)
-{
-#ifdef NOT_IMPELMENT_YET
-	tbm_bufmgr bufmgr = NULL;
-	unsigned int capabilities = TBM_BUFMGR_CAPABILITY_NONE;
-#endif
-	struct stat st_buf;
-
-	if (tbm_sync_support)
-		return TBM_SYNC_ERROR_NONE;
-
-#ifdef NOT_IMPELMENT_YET
-	/* check the bufmgr */
-	bufmgr = _tbm_bufmgr_get_bufmgr();
-	if (!bufmgr)
-		return TBM_SYNC_ERROR_INVALID_OPERATION;
-
-
-	/* check the tbm_sync capability */
-	capabilities = tbm_bufmgr_get_capability(bufmgr);
-
-	if ((capabilities&TBM_BUFMGR_CAPABILITY_TBM_SYNC) != TBM_BUFMGR_CAPABILITY_TBM_SYNC) {
-		//TODO: check the sw_sync device node... to verify the timeline sync
-		tbm_sync_support = 1;
-
-		return TBM_SYNC_ERROR_INVALID_OPERATION;
-	}
-#endif
-
-	if (stat(SYNC_DEVICE_PATH, &st_buf) == 0) {
-		tbm_sync_support = 1;
-	} else {
-		TBM_LOG_E("TBM_SYNC not supported\n");
-		return TBM_SYNC_ERROR_INVALID_OPERATION;
-	}
-
-	return TBM_SYNC_ERROR_NONE;
-}
-
-tbm_sync_timeline_h
-tbm_sync_timeline_create(tbm_sync_error_e *error)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	tbm_sync_timeline_h timeline = NULL;
-	int fd;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	fd = open(SYNC_DEVICE_PATH, O_RDWR);
-	if (fd < 0) {
-		ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-		TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC open failed", errno, strerror(errno));
-	} else {
-		struct _tbm_sync_timeline *timeline_handle =
-			calloc(1, sizeof(struct _tbm_sync_timeline));
-
-		if (timeline_handle == NULL) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s\n", "TBM_SYNC calloc failed");
-			close(fd);
-		} else {
-			timeline_handle->fd = fd;
-			timeline = timeline_handle;
-		}
-	}
-
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
-
-	return timeline;
-}
-
-tbm_sync_error_e
-tbm_sync_timeline_destroy(tbm_sync_timeline_h timeline)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (timeline) {
-		struct _tbm_sync_timeline *timeline_handle = timeline;
-
-		if (timeline_handle->fd != -1)
-			close(timeline_handle->fd);
-		free(timeline);
-	} else {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
-	}
-
-done:
-	_tbm_sync_mutex_unlock();
-
-	return ret;
-}
-
-tbm_sync_timeline_h
-tbm_sync_timeline_import(int fd, tbm_sync_error_e *error)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	tbm_sync_timeline_h timeline = NULL;
-	int new_fd;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (fd < 0) {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
-		goto done;
-	}
-
-	new_fd = dup(fd);
-	if (new_fd < 0) {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
-		TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC timeline dup failed",
-				  errno, strerror(errno));
-	} else {
-		struct _tbm_sync_timeline *timeline_handle =
-			calloc(1, sizeof(struct _tbm_sync_timeline));
-		int fd_flag;
-
-		if ((fd_flag = fcntl(new_fd, F_GETFD, 0)) != -1) {
-			fd_flag |= FD_CLOEXEC;
-			fd_flag = fcntl(new_fd, F_SETFD, fd_flag);
-		} else {
-			TBM_LOG_W("%s\n", "TBM_SYNC fcntl failed");
-		}
-
-		if (timeline_handle == NULL) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s\n", "TBM_SYNC calloc failed");
-			close(new_fd);
-		} else {
-			timeline_handle->fd = new_fd;
-			timeline = timeline_handle;
-		}
-	}
-
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
+	if (timeline == -1)
+		_log_errno();
 
 	return timeline;
 }
 
 int
-tbm_sync_timeline_export(tbm_sync_timeline_h timeline, tbm_sync_error_e *error)
+tbm_sync_timeline_inc(tbm_fd timeline, unsigned int count)
 {
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	int fd = -1;
+	__u32 arg = count;
 
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (timeline) {
-		struct _tbm_sync_timeline *timeline_handle = timeline;
-		int fd_flag;
-
-		fd = dup(timeline_handle->fd);
-		if (fd == -1) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC timeline dup failed",
-					  errno, strerror(errno));
-		} else {
-			if ((fd_flag = fcntl(fd, F_GETFD, 0)) != -1) {
-				fd_flag |= FD_CLOEXEC;
-				fd_flag = fcntl(fd, F_SETFD, fd_flag);
-			} else {
-				TBM_LOG_W("%s\n", "TBM_SYNC fcntl failed");
-			}
-		}
-
-	} else {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
+	if (ioctl(timeline, TIMELINE_IOC_INC, &arg) == -1) {
+		_log_errno();
+		return 0;
 	}
 
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
-
-	return fd;
+	return 1;
 }
 
-tbm_sync_error_e
-tbm_sync_timeline_increase_count(tbm_sync_timeline_h timeline, unsigned int interval)
+tbm_fd
+tbm_sync_fence_create(tbm_fd timeline, const char *name, unsigned int value)
 {
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
+	struct create_fence_data data = { .value = value };
 
-	_tbm_sync_mutex_lock();
+	_copy_string(data.name, name, 32);
 
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (timeline) {
-		struct _tbm_sync_timeline *timeline_handle = timeline;
-		__u32 arg = interval;
-
-		if (ioctl(timeline_handle->fd, SW_SYNC_IOC_INC, &arg) == -1) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC timeline inc failed", errno, strerror(errno));
-		}
-	} else {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
+	if (ioctl(timeline, TIMELINE_IOC_CREATE_FENCE, &data) == -1) {
+		_log_errno();
+		return -1;
 	}
 
-done:
-	_tbm_sync_mutex_unlock();
-
-	return ret;
-}
-
-unsigned int
-tbm_sync_timeline_get_cur_count(tbm_sync_timeline_h timeline, tbm_sync_error_e *error)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	unsigned int cur_count = 0;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	/* TODO: sync_timeline_get_cur_count */
-
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
-
-	return cur_count;
-}
-
-tbm_sync_fence_h
-tbm_sync_fence_create(tbm_sync_timeline_h timeline, const char *name, unsigned int count_val, tbm_sync_error_e *error)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	tbm_sync_fence_h fence = NULL;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (timeline) {
-		struct _tbm_sync_timeline *timeline_handle = timeline;
-		struct sw_sync_create_fence_data {
-			__u32 value;
-			char name[32];
-			__s32 fence;
-		} data;
-
-		data.value = count_val;
-		strncpy(data.name, name ? name : "", 32);
-		data.name[31] = '\0';
-
-		if (ioctl(timeline_handle->fd, SW_SYNC_IOC_CREATE_FENCE, &data) == -1) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC create fence failed",
-					  errno, strerror(errno));
-		} else {
-			struct _tbm_sync_fence *fence_handle =
-				calloc(1, sizeof(struct _tbm_sync_fence));
-
-			if (fence_handle == NULL) {
-				ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-				TBM_LOG_E("%s\n", "TBM_SYNC calloc failed");
-				close(data.fence);
-			} else {
-				fence_handle->fd = data.fence;
-				fence = fence_handle;
-			}
-		}
-	} else {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
-	}
-
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
-
-	return fence;
-}
-
-tbm_sync_error_e
-tbm_sync_fence_destroy(tbm_sync_fence_h fence)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (fence) {
-		struct _tbm_sync_fence *fence_handle = fence;
-
-		if (fence_handle->fd != -1)
-			close(fence_handle->fd);
-		free(fence);
-	}
-
-done:
-	_tbm_sync_mutex_unlock();
-
-	return ret;
-}
-
-tbm_sync_error_e
-tbm_sync_fence_wait(tbm_sync_fence_h fence, int timeout)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (fence) {
-		struct _tbm_sync_fence *fence_handle = fence;
-		__s32 to = timeout;
-
-		if (ioctl(fence_handle->fd, SYNC_IOC_WAIT, &to) == -1) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC fence wait failed", errno, strerror(errno));
-		}
-	} else {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
-	}
-
-done:
-	_tbm_sync_mutex_unlock();
-
-	return ret;
-}
-
-tbm_sync_fence_h
-tbm_sync_fence_merge(tbm_sync_fence_h fence1, tbm_sync_fence_h fence2, const char *name, tbm_sync_error_e *error)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	tbm_sync_fence_h fence = NULL;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (fence1 && fence2) {
-		struct _tbm_sync_fence *fence_handle1 = fence1;
-		struct _tbm_sync_fence *fence_handle2 = fence2;
-
-		struct sync_merge_data {
-			__s32 fd2;
-			char name[32];
-			__s32 fence;
-		} data;
-
-		data.fd2 = fence_handle2->fd;
-		strncpy(data.name, name ? name : "", 32);
-		data.name[31] = '\0';
-
-		if (ioctl(fence_handle1->fd, SYNC_IOC_MERGE, &data) == -1) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC fence merge failed",
-					  errno, strerror(errno));
-		} else {
-			struct _tbm_sync_fence *fence_handle =
-				calloc(1, sizeof(struct _tbm_sync_fence));
-
-			if (fence_handle == NULL) {
-				ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-				TBM_LOG_E("%s\n", "TBM_SYNC calloc failed");
-				close(data.fence);
-			} else {
-				fence_handle->fd = data.fence;
-			}
-		}
-	} else {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
-	}
-
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
-
-	return fence;
-}
-
-unsigned int
-tbm_sync_fence_get_count_val(tbm_sync_fence_h fence, tbm_sync_error_e *error)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	unsigned int count_val = 0;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	/* TODO: sync_fence_get_count_val */
-
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
-
-	return count_val;
-}
-
-tbm_sync_fence_h
-tbm_sync_fence_import(int fd, tbm_sync_error_e *error)
-{
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	tbm_sync_fence_h fence = NULL;
-	int new_fd;
-
-	_tbm_sync_mutex_lock();
-
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
-
-	if (fd < 0) {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
-		goto done;
-	}
-
-	new_fd = dup(fd);
-	if (new_fd < 0) {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
-		TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC fence dup failed",
-				  errno, strerror(errno));
-	} else {
-		struct _tbm_sync_fence *fence_handle =
-			calloc(1, sizeof(struct _tbm_sync_fence));
-		int fd_flag;
-
-		if ((fd_flag = fcntl(new_fd, F_GETFD, 0)) != -1) {
-			fd_flag |= FD_CLOEXEC;
-			fd_flag = fcntl(new_fd, F_SETFD, fd_flag);
-		} else {
-			TBM_LOG_W("%s\n", "TBM_SYNC fcntl failed");
-		}
-
-		if (fence_handle == NULL) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s\n", "TBM_SYNC calloc failed");
-			close(new_fd);
-		} else {
-			fence_handle->fd = new_fd;
-			fence = fence_handle;
-		}
-	}
-
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
-
-	return fence;
+	return data.fence;
 }
 
 int
-tbm_sync_fence_export(tbm_sync_fence_h fence, tbm_sync_error_e *error)
+tbm_sync_fence_wait(tbm_fd fence, int timeout)
 {
-	tbm_sync_error_e ret = TBM_SYNC_ERROR_NONE;
-	int fd = -1;
+	__s32	arg = timeout;
+	int		ret;
 
-	_tbm_sync_mutex_lock();
+	/* Retry while ioctl() ended up with interrupt. */
+	do {
+		ret = ioctl(fence, FENCE_IOC_WAIT, &arg);
+	} while (ret == -1 && errno == EINTR);
 
-	/* check the tbm_sync capability */
-	ret = _tbm_sync_check_capability();;
-	if (ret != TBM_SYNC_ERROR_NONE)
-		goto done;
+	/* ioctl() was successful. */
+	if (ret == 0)
+		return 1;
 
-	if (fence) {
-		struct _tbm_sync_fence *fence_handle = fence;
-		int fd_flag;
+	/* ioctl() ended up with timeout. */
+	if (errno == ETIME)
+		return -1;
 
-		fd = dup(fence_handle->fd);
-		if (fd == -1) {
-			ret = TBM_SYNC_ERROR_INVALID_OPERATION;
-			TBM_LOG_E("%s:%d(%s)\n", "TBM_SYNC fence dup failed",
-					  errno, strerror(errno));
-		} else {
-			if ((fd_flag = fcntl(fd, F_GETFD, 0)) != -1) {
-				fd_flag |= FD_CLOEXEC;
-				fd_flag = fcntl(fd, F_SETFD, fd_flag);
-			} else {
-				TBM_LOG_W("%s\n", "TBM_SYNC fcntl failed");
-			}
-		}
+	/* ioctl() failed for some reason. */
+	_log_errno();
+	return 0;
+}
 
-	} else {
-		ret = TBM_SYNC_ERROR_INVALID_PARAMETER;
+tbm_fd
+tbm_sync_fence_merge(const char *name, tbm_fd fence1, tbm_fd fence2)
+{
+	struct sync_merge_data data = { .fd2 = fence2 };
+
+	_copy_string(data.name, name, 32);
+
+	if (ioctl(fence1, FENCE_IOC_MERGE, &data) == -1) {
+		_log_errno();
+		return -1;
 	}
 
-done:
-	if (error)
-		*error = ret;
-
-	_tbm_sync_mutex_unlock();
-
-	return fd;
+	return data.fence;
 }
