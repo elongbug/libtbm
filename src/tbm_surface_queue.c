@@ -331,6 +331,21 @@ _notify_emit(tbm_surface_queue_h surface_queue,
 	}
 }
 
+static int
+_tbm_surface_queue_get_node_count(tbm_surface_queue_h surface_queue, Queue_Node_Type type)
+{
+	queue_node *node = NULL;
+	queue_node *tmp = NULL;
+	int count = 0;
+
+	LIST_FOR_EACH_ENTRY_SAFE(node, tmp, &surface_queue->list, link) {
+		if (node->type == type)
+			count++;
+	}
+
+	return count;
+}
+
 void
 _tbm_surface_queue_attach(tbm_surface_queue_h surface_queue,
 			  tbm_surface_h surface)
@@ -765,7 +780,9 @@ tbm_surface_queue_can_dequeue(tbm_surface_queue_h surface_queue, int wait)
 	}
 
 	if (_queue_is_empty(&surface_queue->free_queue)) {
-		if (wait) {
+		if (wait &&
+			_tbm_surface_queue_get_node_count(surface_queue,QUEUE_NODE_TYPE_ACQUIRE)) {
+
 			pthread_cond_wait(&surface_queue->free_cond, &surface_queue->lock);
 			pthread_mutex_unlock(&surface_queue->lock);
 			return 1;
@@ -879,7 +896,9 @@ tbm_surface_queue_can_acquire(tbm_surface_queue_h surface_queue, int wait)
 	TBM_QUEUE_TRACE("tbm_surface_queue(%p)\n", surface_queue);
 
 	if (_queue_is_empty(&surface_queue->dirty_queue)) {
-		if (wait) {
+		if (wait &&
+			_tbm_surface_queue_get_node_count(surface_queue,QUEUE_NODE_TYPE_DEQUEUE)) {
+
 			if (!_queue_has_node_type(surface_queue, QUEUE_NODE_TYPE_DEQUEUE)) {
 				TBM_LOG_E("Deosn't have dequeue type node\n");
 				pthread_mutex_unlock(&surface_queue->lock);
