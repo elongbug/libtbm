@@ -357,6 +357,11 @@ _tbm_bo_is_valid(tbm_bo bo)
 	if (bo == NULL)
 		return 0;
 
+	if (gBufMgr == NULL) {
+		TBM_LOG_E("error tbm_bufmgr was deinited\n");
+		return 0;
+	}
+
 	if (!LIST_IS_EMPTY(&gBufMgr->bo_list)) {
 		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &gBufMgr->bo_list, item_link) {
 			if (old_data == bo)
