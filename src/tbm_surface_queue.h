@@ -113,6 +113,14 @@ tbm_surface_queue_error_e tbm_surface_queue_remove_dequeuable_cb(
 	tbm_surface_queue_h surface_queue, tbm_surface_queue_notify_cb dequeuable_cb,
 	void *data);
 
+tbm_surface_queue_error_e tbm_surface_queue_add_dequeue_cb(
+	tbm_surface_queue_h surface_queue, tbm_surface_queue_notify_cb dequeue_cb,
+	void *data);
+
+tbm_surface_queue_error_e tbm_surface_queue_remove_dequeue_cb(
+	tbm_surface_queue_h surface_queue, tbm_surface_queue_notify_cb dequeue_cb,
+	void *data);
+
 tbm_surface_queue_error_e tbm_surface_queue_add_acquirable_cb(
 	tbm_surface_queue_h surface_queue, tbm_surface_queue_notify_cb acquirable_cb,
 	void *data);
