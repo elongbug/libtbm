@@ -28,6 +28,7 @@ AM_CONFIG_HEADER([config.h])
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 AC_PROG_CC
+AC_PROG_CXX
 
 AC_HEADER_STDC
 AC_SYS_LARGEFILE
@@ -49,6 +50,12 @@ DEFAULT_BUFMGR_MODULE_PATH="${libdir}/bufmgr"
 AC_ARG_WITH(bufmgr-module-path, AS_HELP_STRING([--with-bufmgr-module-path=PATH], [tbm bufmgr module dir]),
 				[ BUFMGR_MODULE_PATH="$withval" ],
 				[ BUFMGR_MODULE_PATH="${DEFAULT_BUFMGR_MODULE_PATH}" ])
+
+AC_ARG_WITH(utest, AS_HELP_STRING([--with-utest=yes/no], [whether build/run unit tests or not]),
+				[ utest="$withval" ],
+				[ utest="no" ])
+
+AM_CONDITIONAL(HAVE_UTEST, test "x$utest" = "xyes")
 
 #AC_DEFINE(BUFMGR_MODULE_DIR, "${BUFMGR_MODULE_PATH}", [Directory for the modules of tbm_bufmgr])
 AC_DEFINE_UNQUOTED(BUFMGR_MODULE_DIR, "${BUFMGR_MODULE_PATH}", [Directory for the modules of tbm_bufmgr])
@@ -103,7 +110,8 @@ AM_CONDITIONAL(HOST_CPU_X86_64, test "x$HOST_CPU_X86_64" = "xyes")
 AC_OUTPUT([
    src/Makefile
 	Makefile
-	libtbm.pc])
+	libtbm.pc
+	ut/Makefile])
 
 echo ""
 echo "CFLAGS            : $CFLAGS"

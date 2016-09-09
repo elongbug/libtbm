@@ -1,5 +1,6 @@
 %bcond_with x
 %bcond_with wayland
+%bcond_with utest
 
 Name:           libtbm
 Version:        2.0.1
@@ -16,6 +17,10 @@ BuildRequires:  pkgconfig(wayland-client)
 BuildRequires:  pkgconfig(capi-base-common)
 BuildRequires:  pkgconfig(libpng)
 BuildRequires:  pkgconfig(dlog)
+
+%if %{with utest}
+BuildRequires:  gtest-devel
+%endif
 
 %description
 Description: %{summary}
@@ -38,16 +43,25 @@ Development Files.
 cp %{SOURCE1001} .
 
 %build
+UTEST="no"
+
+%if %{with utest}
+UTEST="yes"
+%endif
 
 %if %{with wayland}
-%reconfigure --prefix=%{_prefix} --with-tbm-platform=WAYLAND \
+%reconfigure --prefix=%{_prefix} --with-tbm-platform=WAYLAND  --with-utest=${UTEST} \
             CFLAGS="${CFLAGS} -Wall -Werror" LDFLAGS="${LDFLAGS} -Wl,--hash-style=both -Wl,--as-needed"
 %else
-%reconfigure --prefix=%{_prefix} --with-tbm-platform=X11 \
+%reconfigure --prefix=%{_prefix} --with-tbm-platform=X11  --with-utest=${UTEST} \
             CFLAGS="${CFLAGS} -Wall -Werror" LDFLAGS="${LDFLAGS} -Wl,--hash-style=both -Wl,--as-needed"
 %endif
 
 make %{?_smp_mflags}
+
+%if %{with utest}
+make -C ut check
+%endif
 
 %install
 rm -rf %{buildroot}
@@ -97,6 +111,9 @@ rm -f %{_unitdir_user}/default.target.wants/tbm-drm-auth-user.path
 %{_unitdir}/tbm-drm-auth.service
 %{_unitdir_user}/tbm-drm-auth-user.path
 %{_unitdir_user}/tbm-drm-auth-user.service
+%if %{with utest}
+%{_bindir}/ut
+%endif
 
 %files devel
 %manifest %{name}.manifest
