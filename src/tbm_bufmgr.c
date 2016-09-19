@@ -852,6 +852,9 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 
 	_tbm_util_check_bo_cnt(bufmgr);
 
+	if (!bufmgr->backend->bo_import)
+		return NULL;
+
 	pthread_mutex_lock(&bufmgr->lock);
 
 	bo = calloc(1, sizeof(struct _tbm_bo));
@@ -919,6 +922,9 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 
 	_tbm_util_check_bo_cnt(bufmgr);
 
+	if (!bufmgr->backend->bo_import_fd)
+		return NULL;
+
 	pthread_mutex_lock(&bufmgr->lock);
 
 	bo = calloc(1, sizeof(struct _tbm_bo));
@@ -984,6 +990,9 @@ tbm_bo_export(tbm_bo bo)
 
 	bufmgr = bo->bufmgr;
 
+	if (!bufmgr->backend->bo_export)
+		return 0;
+
 	pthread_mutex_lock(&bufmgr->lock);
 
 	ret = bufmgr->backend->bo_export(bo);
@@ -1010,6 +1019,9 @@ tbm_bo_export_fd(tbm_bo bo)
 	int ret;
 
 	bufmgr = bo->bufmgr;
+
+	if (!bufmgr->backend->bo_export_fd)
+		return -1;
 
 	pthread_mutex_lock(&bufmgr->lock);
 
