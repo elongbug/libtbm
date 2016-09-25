@@ -243,6 +243,8 @@ struct _tbm_bufmgr {
 
 	struct list_head surf_list;	/* list of surfaces belonging to bufmgr */
 
+	struct list_head surf_queue_list; /* list of surface queues belonging to bufmgr */
+
 	struct list_head debug_key_list; /* list of debug data key list belonging to bufmgr */
 
 	void *module_data;
