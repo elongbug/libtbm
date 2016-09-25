@@ -52,30 +52,25 @@ int ut_fclose(FILE *stream)
 
 FILE *ut_fopen(const char *filename, const char *mode)
 {
-	if (!filename || !mode) {
+	if (!filename || !mode)
 		return NULL;
-	}
 
-	if (!strcmp(filename, "/proc/111/cmdline")) {
+	if (!strcmp(filename, "/proc/111/cmdline"))
 		return NULL;
-	}
 
-	if (!strcmp(filename, "/proc/222/cmdline")) {
+	if (!strcmp(filename, "/proc/222/cmdline"))
 		return &g_error_file;
-	}
 
 	return &g_file;
 }
 
 char *ut_fgets(char *str, int num, FILE *stream)
 {
-	if (!str || num < 1 || !stream) {
+	if (!str || num < 1 || !stream)
 		return NULL;
-	}
 
-	if (stream == &g_error_file) {
+	if (stream == &g_error_file)
 		return NULL;
-	}
 
 	strncpy(str, "application", 255);
 
@@ -89,25 +84,24 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 
 int dup2(int old_handle, int new_handle)
 {
-	if (old_handle == new_handle) {
+	if (old_handle == new_handle)
 		return -1;
-	}
+
 	return 0;
 }
 
 int dup(int handle)
 {
-	if (1 == handle) {
+	if (1 == handle)
 		return -1;
-	}
+
 	return 0;
 }
 
 int ioctl(int fd, unsigned long int request, ...)
 {
-	if (IOCTL_FD_ERROR == fd) {
+	if (IOCTL_FD_ERROR == fd)
 		return 1;
-	}
 
 	if (IOCTL_FD_GET == fd) {
 		va_list argList;
@@ -123,9 +117,8 @@ int ioctl(int fd, unsigned long int request, ...)
 
 void *ut_calloc(size_t nmemb, size_t size)
 {
-	if (CALLOC_ERROR) {
+	if (CALLOC_ERROR)
 		return NULL;
-	}
 
 	return calloc(nmemb, size);
 }

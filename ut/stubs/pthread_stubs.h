@@ -41,9 +41,8 @@ static int ut_pthread_mutex_unlock(pthread_mutex_t * __mutex) {}
 static int ut_pthread_mutex_init(pthread_mutex_t * __mutex,
 								 const pthread_mutexattr_t * __mutexattr)
 {
-	if (PTHREAD_MUTEX_INIT_ERROR) {
+	if (PTHREAD_MUTEX_INIT_ERROR)
 		return PTHREAD_MUTEX_INIT_ERROR;
-	}
 
 	return 0;
 }

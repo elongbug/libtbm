@@ -42,11 +42,11 @@ public:
 	tbm_bo_handle() {}
 	tbm_bo_handle(const uint64_t v)
 	{
-		if (v == 0) {
+		if (v == 0)
 			ptr = NULL;
-		} else {
+		else
 			ptr = &u64;
-		}
+
 		s32 = v;
 		u32 = v;
 		s64 = v;

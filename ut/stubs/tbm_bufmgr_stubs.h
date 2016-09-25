@@ -53,18 +53,16 @@ static int ut_bo2_size(tbm_bo bo)
 
 static void *ut_bo_alloc(tbm_bo bo, int size, int flags)
 {
-	if (TBM_BO_ALLOC_ERROR) {
+	if (TBM_BO_ALLOC_ERROR)
 		return NULL;
-	}
 
 	return ret_bo;
 }
 
 static void *ut_bo_import(tbm_bo bo, unsigned int key)
 {
-	if (TBM_BO_IMPORT_ERROR) {
+	if (TBM_BO_IMPORT_ERROR)
 		return NULL;
-	}
 
 	return ret_bo;
 }
@@ -76,27 +74,24 @@ static int ut_bo_get_flags(tbm_bo bo)
 
 static void *ut_bo_import_fd(tbm_bo bo, tbm_fd fd)
 {
-	if (TBM_BO_IMPORT_ERROR) {
+	if (TBM_BO_IMPORT_ERROR)
 		return NULL;
-	}
 
 	return ret_bo;
 }
 
 static unsigned int ut_bo_export(tbm_bo bo)
 {
-	if (UT_TBM_ERROR) {
+	if (UT_TBM_ERROR)
 		return 0;
-	}
 
 	return 1;
 }
 
 static tbm_fd ut_bo_export_fd(tbm_bo bo)
 {
-	if (UT_TBM_ERROR) {
+	if (UT_TBM_ERROR)
 		return -1;
-	}
 
 	return 1;
 }
@@ -105,11 +100,10 @@ static tbm_bo_handle ut_bo_get_handle(tbm_bo bo, int device)
 {
 	tbm_bo_handle ret;
 
-	if (UT_TBM_ERROR) {
+	if (UT_TBM_ERROR)
 		ret.ptr = NULL;
-	} else {
+	else
 		ret.ptr = (void *)12;
-	}
 
 	return ret;
 }
@@ -118,20 +112,18 @@ static tbm_bo_handle ut_bo_map(tbm_bo bo, int device, int opt)
 {
 	tbm_bo_handle ret;
 
-	if (UT_TBM_ERROR) {
+	if (UT_TBM_ERROR)
 		ret.ptr = NULL;
-	} else {
+	else
 		ret.ptr = (void *)12;
-	}
 
 	return ret;
 }
 
 static int ut_bo_unmap(tbm_bo bo)
 {
-	if (UT_TBM_ERROR) {
+	if (UT_TBM_ERROR)
 		return 0;
-	}
 
 	return 1;
 }
@@ -140,9 +132,8 @@ static void ut_tbm_data_free(void *user_data) {}
 
 static int ut_bufmgr_bind_native_display(tbm_bufmgr bufmgr, void *NativeDisplay)
 {
-	if (UT_TBM_ERROR) {
+	if (UT_TBM_ERROR)
 		return 0;
-	}
 
 	return 1;
 }
