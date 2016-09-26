@@ -662,6 +662,9 @@ tbm_bufmgr_init(int fd)
 	/* intialize surf_list */
 	LIST_INITHEAD(&gBufMgr->surf_list);
 
+	/* intialize surf_list */
+	LIST_INITHEAD(&gBufMgr->surf_queue_list);
+
 	/* intialize debug_key_list */
 	LIST_INITHEAD(&gBufMgr->debug_key_list);
 
