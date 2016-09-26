@@ -914,10 +914,11 @@ tbm_surface_queue_enqueue(tbm_surface_queue_h
 		_tbm_surface_queue_enqueue(surface_queue, node, 1);
 
 	if (_queue_is_empty(&surface_queue->dirty_queue)) {
+		TBM_LOG_E("enqueue surface but queue is empty node:%p\n", node);
 		pthread_mutex_unlock(&surface_queue->lock);
 
 		_tbm_surf_queue_mutex_unlock();
-		return TBM_SURFACE_QUEUE_ERROR_NONE;
+		return TBM_SURFACE_QUEUE_ERROR_INVALID_SURFACE;
 	}
 
 	node->type = QUEUE_NODE_TYPE_ENQUEUE;
