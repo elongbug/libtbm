@@ -1445,10 +1445,13 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 	char data[255] = {0,};
 	tbm_surface_debug_data *debug_old_data = NULL, *debug_tmp = NULL;
 
-	_tbm_bufmgr_mutex_lock();
+	pthread_mutex_lock(&gLock);
 
-	TBM_BUFMGR_RETURN_IF_FAIL(TBM_BUFMGR_IS_VALID(bufmgr));
-	TBM_BUFMGR_RETURN_IF_FAIL(bufmgr == gBufMgr);
+	if (!TBM_BUFMGR_IS_VALID(bufmgr) || (bufmgr != gBufMgr)) {
+		TBM_LOG_E("invalid bufmgr\n");
+		pthread_mutex_unlock(&gLock);
+		return;
+	}
 
 	TBM_DEBUG("\n");
 	_tbm_util_get_appname_from_pid(getpid(), app_name);
@@ -1544,7 +1547,7 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 
 	TBM_DEBUG("===============================================================\n");
 
-	_tbm_bufmgr_mutex_unlock();
+	pthread_mutex_unlock(&gLock);
 }
 
 void

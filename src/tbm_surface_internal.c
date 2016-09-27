@@ -1394,8 +1394,10 @@ _tbm_surface_internal_get_debug_data(tbm_surface_h surface, char *key)
 
 	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
 		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &surface->debug_data_list, item_link) {
-			if (!strcmp(old_data->key, key))
+			if (!strcmp(old_data->key, key)) {
+				_tbm_surface_mutex_unlock();
 				return old_data->value;
+			}
 		}
 	}
 
