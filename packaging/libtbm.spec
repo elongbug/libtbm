@@ -18,10 +18,6 @@ BuildRequires:  pkgconfig(capi-base-common)
 BuildRequires:  pkgconfig(libpng)
 BuildRequires:  pkgconfig(dlog)
 
-%if %{with utest}
-BuildRequires:  gtest-devel
-%endif
-
 %description
 Description: %{summary}
 
@@ -36,6 +32,15 @@ The library for Tizen Buffer Manager.
 
 Development Files.
 
+%if %{with utest}
+%package utests
+Summary: Tizen Buffer Manager unit tests package
+Group: System/Libraries
+
+%description utests
+Test module for testing libtbm APIs
+%endif
+
 %global TZ_SYS_RO_SHARE  %{?TZ_SYS_RO_SHARE:%TZ_SYS_RO_SHARE}%{!?TZ_SYS_RO_SHARE:/usr/share}
 
 %prep
@@ -46,6 +51,11 @@ cp %{SOURCE1001} .
 UTEST="no"
 
 %if %{with utest}
+cd ut/gtest/googletest
+autoreconf --install
+./configure
+make
+cd ../../..
 UTEST="yes"
 %endif
 
@@ -59,14 +69,13 @@ UTEST="yes"
 
 make %{?_smp_mflags}
 
-%if %{with utest}
-make -C ut check
-%endif
-
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/%{TZ_SYS_RO_SHARE}/license
 cp -af COPYING %{buildroot}/%{TZ_SYS_RO_SHARE}/license/%{name}
+%if %{with utest}
+cp -af %{_builddir}/%{buildsubdir}/ut/gtest/googletest/LICENSE %{buildroot}/%{TZ_SYS_RO_SHARE}/license/googletest
+%endif
 %make_install
 
 
@@ -111,9 +120,6 @@ rm -f %{_unitdir_user}/default.target.wants/tbm-drm-auth-user.path
 %{_unitdir}/tbm-drm-auth.service
 %{_unitdir_user}/tbm-drm-auth-user.path
 %{_unitdir_user}/tbm-drm-auth-user.service
-%if %{with utest}
-%{_bindir}/ut
-%endif
 
 %files devel
 %manifest %{name}.manifest
@@ -129,3 +135,11 @@ rm -f %{_unitdir_user}/default.target.wants/tbm-drm-auth-user.path
 %{_includedir}/tbm_sync.h
 %{_libdir}/libtbm.so
 %{_libdir}/pkgconfig/libtbm.pc
+
+%if %{with utest}
+%files utests
+%defattr(-,root,root,-)
+%{_bindir}/tbm_utests
+%{TZ_SYS_RO_SHARE}/license/%{name}
+%{TZ_SYS_RO_SHARE}/license/googletest
+%endif
