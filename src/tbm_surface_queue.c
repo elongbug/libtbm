@@ -1382,9 +1382,13 @@ __tbm_queue_default_need_attach(tbm_surface_queue_h surface_queue)
 		return;
 
 	if (surface_queue->alloc_cb) {
-
+		_tbm_surf_queue_mutex_unlock();
 		surface = surface_queue->alloc_cb(surface_queue, surface_queue->alloc_cb_data);
-		TBM_RETURN_IF_FAIL(surface != NULL);
+		_tbm_surf_queue_mutex_lock();
+
+		if (!surface)
+			return;
+
 		tbm_surface_internal_ref(surface);
 	} else {
 		surface = tbm_surface_internal_create_with_flags(surface_queue->width,
