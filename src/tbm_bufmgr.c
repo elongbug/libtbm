@@ -1462,7 +1462,7 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 	snprintf(title, 255, "%s", "no  surface     refcnt  width  height  bpp  size    n_b  n_p  flags  format    app_name       ");
 	if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
 		LIST_FOR_EACH_ENTRY_SAFE(debug_old_data, debug_tmp, &bufmgr->debug_key_list, item_link) {
-			strncat(title, "  ", 2);
+			strncat(title, "  ", 3);
 			strncat(title, debug_old_data->key, strlen(debug_old_data->key) + 1);
 		}
 	}
@@ -1499,13 +1499,13 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 
 			if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
 				LIST_FOR_EACH_ENTRY_SAFE(debug_old_data, debug_tmp, &bufmgr->debug_key_list, item_link) {
-					strncat(data, "  ", 2);
+					strncat(data, "  ", 3);
 
 					value = _tbm_surface_internal_get_debug_data(surf, debug_old_data->key);
 					if (value)
 						strncat(data, value, strlen(value) + 1);
 					else
-						strncat(data, "none", strlen("none") + 1);
+						strncat(data, "none", 5);
 				}
 			}
 			TBM_DEBUG("%s\n", data);
