@@ -1244,8 +1244,10 @@ tbm_surface_queue_reset(tbm_surface_queue_h
 	TBM_QUEUE_TRACE("tbm_surface_queue(%p)\n", surface_queue);
 
 	if (width == surface_queue->width && height == surface_queue->height &&
-	    format == surface_queue->format)
+	    format == surface_queue->format) {
+		_tbm_surf_queue_mutex_unlock();
 		return TBM_SURFACE_QUEUE_ERROR_NONE;
+	}
 
 	pthread_mutex_lock(&surface_queue->lock);
 
