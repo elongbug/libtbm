@@ -1069,7 +1069,7 @@ tbm_bo_export_fd(tbm_bo bo)
 
 	if (!bufmgr->backend->bo_export_fd) {
 		_tbm_bufmgr_mutex_unlock();
-		return 0;
+		return -1;
 	}
 
 	ret = bufmgr->backend->bo_export_fd(bo);
