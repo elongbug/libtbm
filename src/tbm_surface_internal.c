@@ -1336,12 +1336,15 @@ tbm_surface_internal_set_debug_data(tbm_surface_h surface, char *key, char *valu
 {
 	tbm_surface_debug_data *debug_data = NULL;
 	tbm_surface_debug_data *old_data = NULL, *tmp = NULL;
-	tbm_bufmgr bufmgr = surface->bufmgr;
+	tbm_bufmgr bufmgr = NULL;
 
 	_tbm_surface_mutex_lock();
 
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(tbm_surface_internal_is_valid(surface), 0);
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(key, 0);
+
+	bufmgr = surface->bufmgr;
+
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(bufmgr, 0);
 
 	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
