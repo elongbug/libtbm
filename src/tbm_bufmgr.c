@@ -57,6 +57,8 @@ static __thread tbm_error_e tbm_last_error = TBM_ERROR_NONE;
 
 static void _tbm_bufmgr_mutex_unlock(void);
 
+//#define TBM_BUFMGR_INIT_TIME
+
 #define PREFIX_LIB    "libtbm_"
 #define SUFFIX_LIB    ".so"
 #define DEFAULT_LIB   PREFIX_LIB"default"SUFFIX_LIB
@@ -564,7 +566,16 @@ tbm_bufmgr_init(int fd)
 {
 	char *env;
 
+#ifdef TBM_BUFMGR_INIT_TIME
+	struct timeval start_tv, end_tv;
+#endif
+
 	pthread_mutex_lock(&gLock);
+
+#ifdef TBM_BUFMGR_INIT_TIME
+	/* get the start tv */
+	gettimeofday(&start_tv, NULL);
+#endif
 
 	/* LCOV_EXCL_START */
 #ifdef HAVE_DLOG
@@ -667,6 +678,12 @@ tbm_bufmgr_init(int fd)
 
 	/* intialize debug_key_list */
 	LIST_INITHEAD(&gBufMgr->debug_key_list);
+
+#ifdef TBM_BUFMGR_INIT_TIME
+	/* get the end tv */
+ 	gettimeofday(&end_tv, NULL);
+	TBM_LOG_I("tbm_bufmgr_init time: %ld ms", ((end_tv.tv_sec * 1000 + end_tv.tv_usec / 1000) - (start_tv.tv_sec * 1000 + start_tv.tv_usec / 1000)));
+#endif
 
 	pthread_mutex_unlock(&gLock);
 

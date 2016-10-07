@@ -32,10 +32,12 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _TBM_BUFMGR_INT_H_
 #define _TBM_BUFMGR_INT_H_
 
+#include <sys/time.h>
 #include <unistd.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
