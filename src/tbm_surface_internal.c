@@ -67,7 +67,6 @@ void _tbm_surface_mutex_unlock(void);
 }
 
 /* LCOV_EXCL_START */
-#define USE_REALTIME 1
 
 static double
 _tbm_surface_internal_get_time(void)
@@ -75,11 +74,7 @@ _tbm_surface_internal_get_time(void)
 	struct timespec tp;
 	unsigned int time;
 
-#if USE_REALTIME
-	clock_gettime(CLOCK_REALTIME, &tp);
-#else /* USE_MONOTONIC */
 	clock_gettime(CLOCK_MONOTONIC, &tp);
-#endif
 	time = (tp.tv_sec * 1000000L) + (tp.tv_nsec / 1000);
 
 	return time / 1000.0;
