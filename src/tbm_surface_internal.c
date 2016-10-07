@@ -310,7 +310,7 @@ _tbm_surface_internal_destroy(tbm_surface_h surface)
 	/* destory the user_data_list */
 	if (!LIST_IS_EMPTY(&surface->user_data_list)) {
 		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &surface->user_data_list, item_link) {
-			DBG("free user_data\n");
+			TBM_DBG("free user_data\n");
 			user_data_delete(old_data);
 		}
 	}

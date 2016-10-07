@@ -355,7 +355,7 @@ _tbm_bo_lock(tbm_bo bo, int device, int opt)
 			bo);
 	}
 
-	DBG_LOCK(">> LOCK bo:%p(%d->%d)\n",
+	TBM_DBG_LOCK(">> LOCK bo:%p(%d->%d)\n",
 		 bo, old, bo->lock_cnt);
 
 	return ret;
@@ -397,7 +397,7 @@ _tbm_bo_unlock(tbm_bo bo)
 	if (bo->lock_cnt < 0)
 		bo->lock_cnt = 0;
 
-	DBG_LOCK(">> UNLOCK bo:%p(%d->%d)\n",
+	TBM_DBG_LOCK(">> UNLOCK bo:%p(%d->%d)\n",
 		 bo, old, bo->lock_cnt);
 }
 
@@ -434,14 +434,14 @@ _check_version(TBMModuleVersionInfo *data)
 	abimaj = GET_ABI_MAJOR(data->abiversion);
 	abimin = GET_ABI_MINOR(data->abiversion);
 
-	DBG("TBM module %s: vendor=\"%s\" ABI=%d,%d\n",
+	TBM_DBG("TBM module %s: vendor=\"%s\" ABI=%d,%d\n",
 	    data->modname ? data->modname : "UNKNOWN!",
 	    data->vendor ? data->vendor : "UNKNOWN!", abimaj, abimin);
 
 	vermaj = GET_ABI_MAJOR(TBM_ABI_VERSION);
 	vermin = GET_ABI_MINOR(TBM_ABI_VERSION);
 
-	DBG("TBM ABI version %d.%d\n",
+	TBM_DBG("TBM ABI version %d.%d\n",
 	    vermaj, vermin);
 
 	if (abimaj != vermaj) {
@@ -519,7 +519,7 @@ _tbm_bufmgr_load_module(tbm_bufmgr bufmgr, int fd, const char *file)
 
 	bufmgr->module_data = module_data;
 
-	DBG("Success to load module(%s)\n",
+	TBM_DBG("Success to load module(%s)\n",
 	    file);
 
 	return 1;
@@ -606,7 +606,7 @@ tbm_bufmgr_init(int fd)
 		return gBufMgr;
 	}
 
-	DBG("bufmgr init\n");
+	TBM_DBG("bufmgr init\n");
 
 	/* allocate bufmgr */
 	gBufMgr = calloc(1, sizeof(struct _tbm_bufmgr));
@@ -632,12 +632,12 @@ tbm_bufmgr_init(int fd)
 	}
 
 	/* log for tbm backend_flag */
-	DBG("backend flag:%x:", gBufMgr->backend->flags);
-	DBG("\n");
+	TBM_DBG("backend flag:%x:", gBufMgr->backend->flags);
+	TBM_DBG("\n");
 
 	gBufMgr->ref_count = 1;
 
-	DBG("create tizen bufmgr:%p ref_count:%d\n",
+	TBM_DBG("create tizen bufmgr:%p ref_count:%d\n",
 	    gBufMgr, gBufMgr->ref_count);
 
 	/* setup the lock_type */
@@ -651,7 +651,7 @@ tbm_bufmgr_init(int fd)
 	else
 		gBufMgr->lock_type = LOCK_TRY_ALWAYS;
 
-	DBG("BUFMGR_LOCK_TYPE=%s\n",
+	TBM_DBG("BUFMGR_LOCK_TYPE=%s\n",
 	    env ? env : "default:once");
 
 	TBM_TRACE("create tbm_bufmgr(%p) ref_count(%d) fd(%d)\n", gBufMgr, gBufMgr->ref_count, fd);
@@ -802,7 +802,7 @@ tbm_bo_unref(tbm_bo bo)
 		/* destory the user_data_list */
 		if (!LIST_IS_EMPTY(&bo->user_data_list)) {
 			LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &bo->user_data_list, item_link) {
-				DBG("free user_data\n");
+				TBM_DBG("free user_data\n");
 				user_data_delete(old_data);
 			}
 		}

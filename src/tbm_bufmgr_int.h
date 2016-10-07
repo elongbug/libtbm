@@ -55,11 +55,11 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifdef DEBUG
 extern int bDebug;
 
-#define DBG(...) { if (bDebug&0x1) TBM_LOG_D(__VA_ARGS__); }
-#define DBG_LOCK(...) { if (bDebug&0x2) TBM_LOG_D(__VA_ARGS__); }
+#define TBM_DBG(...) { if (bDebug&0x1) TBM_LOG_D(__VA_ARGS__); }
+#define TBM_DBG_LOCK(...) { if (bDebug&0x2) TBM_LOG_D(__VA_ARGS__); }
 #else
-#define DBG(...)
-#define DBG_LOCK(...)
+#define TBM_DBG(...)
+#define TBM_DBG_LOCK(...)
 #endif /* DEBUG */
 
 #define TRACE
