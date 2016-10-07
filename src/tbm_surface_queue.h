@@ -87,6 +87,9 @@ int tbm_surface_queue_get_size(tbm_surface_queue_h surface_queue);
 tbm_surface_queue_error_e tbm_surface_queue_reset(
 		tbm_surface_queue_h surface_queue, int width, int height, int format);
 
+tbm_surface_queue_error_e tbm_surface_queue_set_size(
+		tbm_surface_queue_h surface_queue, int queue_size, int flush);
+
 tbm_surface_queue_error_e tbm_surface_queue_flush(tbm_surface_queue_h surface_queue);
 
 tbm_surface_queue_error_e tbm_surface_queue_add_reset_cb(

@@ -116,6 +116,7 @@ typedef struct _tbm_surface_queue_interface {
 	void (*release)(tbm_surface_queue_h queue, queue_node *node);
 	queue_node *(*dequeue)(tbm_surface_queue_h queue);
 	queue_node *(*acquire)(tbm_surface_queue_h queue);
+	void (*need_detach)(tbm_surface_queue_h queue, queue_node *node);
 } tbm_surface_queue_interface;
 
 struct _tbm_surface_queue {
@@ -123,6 +124,7 @@ struct _tbm_surface_queue {
 	int height;
 	int format;
 	int queue_size;
+	int num_attached;
 
 	queue free_queue;
 	queue dirty_queue;
@@ -443,6 +445,7 @@ _tbm_surface_queue_attach(tbm_surface_queue_h surface_queue,
 	node->surface = surface;
 
 	LIST_ADDTAIL(&node->link, &surface_queue->list);
+	surface_queue->num_attached++;
 	_queue_node_push_back(&surface_queue->free_queue, node);
 }
 
@@ -454,8 +457,10 @@ _tbm_surface_queue_detach(tbm_surface_queue_h surface_queue,
 	int queue_type;
 
 	node = _queue_get_node(surface_queue, 0, surface, &queue_type);
-	if (node)
+	if (node) {
 		_queue_delete_node(surface_queue, node);
+		surface_queue->num_attached--;
+	}
 }
 
 void
@@ -1071,6 +1076,21 @@ tbm_surface_queue_release(tbm_surface_queue_h
 		return TBM_SURFACE_QUEUE_ERROR_INVALID_SURFACE;
 	}
 
+	if (surface_queue->queue_size < surface_queue->num_attached) {
+
+		TBM_QUEUE_TRACE("deatch tbm_surface_queue(%p) surface(%p)\n", surface_queue, node->surface);
+
+		if (surface_queue->impl && surface_queue->impl->need_detach)
+			surface_queue->impl->need_detach(surface_queue, node);
+		else
+			_tbm_surface_queue_detach(surface_queue, surface);
+
+		pthread_mutex_unlock(&surface_queue->lock);
+
+		_tbm_surf_queue_mutex_unlock();
+		return TBM_SURFACE_QUEUE_ERROR_NONE;
+	}
+
 	if (surface_queue->impl && surface_queue->impl->release)
 		surface_queue->impl->release(surface_queue, node);
 	else
@@ -1267,6 +1287,8 @@ tbm_surface_queue_reset(tbm_surface_queue_h
 	_queue_init(&surface_queue->dirty_queue);
 	LIST_INITHEAD(&surface_queue->list);
 
+	surface_queue->num_attached = 0;
+
 	if (surface_queue->impl && surface_queue->impl->reset)
 		surface_queue->impl->reset(surface_queue);
 
@@ -1278,6 +1300,86 @@ tbm_surface_queue_reset(tbm_surface_queue_h
 	_notify_emit(surface_queue, &surface_queue->reset_noti);
 
 	return TBM_SURFACE_QUEUE_ERROR_NONE;
+}
+
+tbm_surface_queue_error_e
+tbm_surface_queue_set_size(tbm_surface_queue_h
+			surface_queue, int queue_size, int flush)
+{
+	queue_node *node = NULL, *tmp = NULL;
+	int need_del;
+
+	_tbm_surf_queue_mutex_lock();
+
+	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(_tbm_surface_queue_is_valid(surface_queue),
+					TBM_SURFACE_QUEUE_ERROR_INVALID_QUEUE);
+	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(queue_size > 0,
+					TBM_SURFACE_QUEUE_ERROR_INVALID_PARAMETER);
+
+	TBM_QUEUE_TRACE("tbm_surface_queue(%p)\n", surface_queue);
+
+	if ((surface_queue->queue_size == queue_size) && !flush) {
+		_tbm_surf_queue_mutex_unlock();
+		return TBM_SURFACE_QUEUE_ERROR_NONE;
+	}
+
+	pthread_mutex_lock(&surface_queue->lock);
+
+	if (flush) {
+		/* Destory surface and Push to free_queue */
+		LIST_FOR_EACH_ENTRY_SAFE(node, tmp, &surface_queue->list, link) {
+			_queue_delete_node(surface_queue, node);
+		}
+
+		/* Reset queue */
+		_queue_init(&surface_queue->free_queue);
+		_queue_init(&surface_queue->dirty_queue);
+		LIST_INITHEAD(&surface_queue->list);
+
+		surface_queue->num_attached = 0;
+		surface_queue->queue_size = queue_size;
+
+		if (surface_queue->impl && surface_queue->impl->reset)
+			surface_queue->impl->reset(surface_queue);
+
+		pthread_mutex_unlock(&surface_queue->lock);
+		pthread_cond_signal(&surface_queue->free_cond);
+
+		_tbm_surf_queue_mutex_unlock();
+
+		_notify_emit(surface_queue, &surface_queue->reset_noti);
+
+		return TBM_SURFACE_QUEUE_ERROR_NONE;
+	}
+	else {
+
+		if (surface_queue->queue_size > queue_size) {
+
+			need_del = surface_queue->queue_size - queue_size;
+
+			LIST_FOR_EACH_ENTRY_SAFE(node, tmp, &surface_queue->free_queue.head, item_link) {
+
+				TBM_QUEUE_TRACE("deatch tbm_surface_queue(%p) surface(%p)\n", surface_queue, node->surface);
+
+				if (surface_queue->impl && surface_queue->impl->need_detach)
+					surface_queue->impl->need_detach(surface_queue, node);
+				else
+					_tbm_surface_queue_detach(surface_queue, node->surface);
+
+				need_del--;
+				if (need_del == 0)
+					break;
+			}
+		}
+
+		surface_queue->queue_size = queue_size;
+
+		pthread_mutex_unlock(&surface_queue->lock);
+
+		_tbm_surf_queue_mutex_unlock();
+
+		return TBM_SURFACE_QUEUE_ERROR_NONE;
+	}
 }
 
 tbm_surface_queue_error_e
@@ -1303,6 +1405,8 @@ tbm_surface_queue_flush(tbm_surface_queue_h surface_queue)
 	_queue_init(&surface_queue->free_queue);
 	_queue_init(&surface_queue->dirty_queue);
 	LIST_INITHEAD(&surface_queue->list);
+
+	surface_queue->num_attached = 0;
 
 	if (surface_queue->impl && surface_queue->impl->reset)
 		surface_queue->impl->reset(surface_queue);
@@ -1349,26 +1453,8 @@ tbm_surface_queue_get_surfaces(tbm_surface_queue_h surface_queue,
 }
 
 typedef struct {
-	int queue_size;
-	int num_attached;
 	int flags;
 } tbm_queue_default;
-
-static void
-__tbm_queue_default_init(tbm_surface_queue_h surface_queue)
-{
-	tbm_queue_default *data = surface_queue->impl_data;
-
-	data->num_attached = 0;
-}
-
-static void
-__tbm_queue_default_reset(tbm_surface_queue_h surface_queue)
-{
-	tbm_queue_default *data = surface_queue->impl_data;
-
-	data->num_attached = 0;
-}
 
 static void
 __tbm_queue_default_destroy(tbm_surface_queue_h surface_queue)
@@ -1382,7 +1468,7 @@ __tbm_queue_default_need_attach(tbm_surface_queue_h surface_queue)
 	tbm_queue_default *data = surface_queue->impl_data;
 	tbm_surface_h surface;
 
-	if (data->queue_size == data->num_attached)
+	if (surface_queue->queue_size == surface_queue->num_attached)
 		return;
 
 	if (surface_queue->alloc_cb) {
@@ -1404,18 +1490,18 @@ __tbm_queue_default_need_attach(tbm_surface_queue_h surface_queue)
 
 	_tbm_surface_queue_attach(surface_queue, surface);
 	tbm_surface_internal_unref(surface);
-	data->num_attached++;
 }
 
 static const tbm_surface_queue_interface tbm_queue_default_impl = {
-	__tbm_queue_default_init,
-	__tbm_queue_default_reset,
+	NULL, 				/*__tbm_queue_default_init*/
+	NULL,				/*__tbm_queue_default_reset*/
 	__tbm_queue_default_destroy,
 	__tbm_queue_default_need_attach,
 	NULL,				/*__tbm_queue_default_enqueue*/
 	NULL,				/*__tbm_queue_default_release*/
 	NULL,				/*__tbm_queue_default_dequeue*/
 	NULL,				/*__tbm_queue_default_acquire*/
+	NULL,				/*__tbm_queue_default_need_detach*/
 };
 
 tbm_surface_queue_h
@@ -1443,10 +1529,9 @@ tbm_surface_queue_create(int queue_size, int width,
 		return NULL;
 	}
 
-	data->queue_size = queue_size;
 	data->flags = flags;
 	_tbm_surface_queue_init(surface_queue,
-				data->queue_size,
+				queue_size,
 				width, height, format,
 				&tbm_queue_default_impl, data);
 
@@ -1456,8 +1541,6 @@ tbm_surface_queue_create(int queue_size, int width,
 }
 
 typedef struct {
-	int queue_size;
-	int num_attached;
 	int flags;
 	queue dequeue_list;
 } tbm_queue_sequence;
@@ -1467,7 +1550,6 @@ __tbm_queue_sequence_init(tbm_surface_queue_h surface_queue)
 {
 	tbm_queue_sequence *data = surface_queue->impl_data;
 
-	data->num_attached = 0;
 	_queue_init(&data->dequeue_list);
 }
 
@@ -1476,7 +1558,6 @@ __tbm_queue_sequence_reset(tbm_surface_queue_h surface_queue)
 {
 	tbm_queue_sequence *data = surface_queue->impl_data;
 
-	data->num_attached = 0;
 	_queue_init(&data->dequeue_list);
 }
 
@@ -1492,7 +1573,7 @@ __tbm_queue_sequence_need_attach(tbm_surface_queue_h surface_queue)
 	tbm_queue_sequence *data = surface_queue->impl_data;
 	tbm_surface_h surface;
 
-	if (data->queue_size == data->num_attached)
+	if (surface_queue->queue_size == surface_queue->num_attached)
 		return;
 
 	if (surface_queue->alloc_cb) {
@@ -1514,7 +1595,6 @@ __tbm_queue_sequence_need_attach(tbm_surface_queue_h surface_queue)
 
 	_tbm_surface_queue_attach(surface_queue, surface);
 	tbm_surface_internal_unref(surface);
-	data->num_attached++;
 }
 
 static void
@@ -1560,6 +1640,7 @@ static const tbm_surface_queue_interface tbm_queue_sequence_impl = {
 	NULL,					/*__tbm_queue_sequence_release*/
 	__tbm_queue_sequence_dequeue,
 	NULL,					/*__tbm_queue_sequence_acquire*/
+	NULL,					/*__tbm_queue_sequence_need_dettach*/
 };
 
 tbm_surface_queue_h
@@ -1586,10 +1667,9 @@ tbm_surface_queue_sequence_create(int queue_size, int width,
 		return NULL;
 	}
 
-	data->queue_size = queue_size;
 	data->flags = flags;
 	_tbm_surface_queue_init(surface_queue,
-				data->queue_size,
+				queue_size,
 				width, height, format,
 				&tbm_queue_sequence_impl, data);
 
