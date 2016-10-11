@@ -2,11 +2,14 @@
 Description= tbm-drm-auth setup service
 
 [Service]
+User=ui_fw
+Group=ui_fw
+Capabilities=cap_fowner,cap_chown=i
+SecureBits=keep-caps
 Type=oneshot
 SmackProcessLabel=System
 ExecStart=/usr/bin/chmod g+w /run/tbm-drm-auth
 ExecStart=/usr/bin/chgrp display /run/tbm-drm-auth
-ExecStart=/usr/bin/chsmack -a User /run/tbm-drm-auth
 
 [Install]
 WantedBy=graphical.target
