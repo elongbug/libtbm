@@ -1,6 +1,6 @@
-bin_PROGRAMS = tbm_utests
+bin_PROGRAMS = ut
 
-tbm_utests_SOURCES = \
+ut_SOURCES = \
 	src/main_tests.cpp \
 	src/ut_tbm_bufmgr.cpp \
 	src/ut_tbm_bufmgr_backend.cpp \
@@ -9,24 +9,20 @@ tbm_utests_SOURCES = \
 	src/ut_tbm_surface_internal.cpp \
 	stubs/stdlib_stubs.cpp
 
-tbm_utests_CXXFLAGS = \
+ut_CXXFLAGS = \
 	${CXXFLAGS} \
 	@LIBTBM_CFLAGS@ \
 	-I./stubs \
 	-I./src \
 	-I../src \
-	-I./gtest/googletest/include \
-	-fpermissive \
-	-w
+	-fpermissive
 
-tbm_utests_LDADD = \
-	gtest/googletest/lib/.libs/libgtest.a
-
-tbm_utests_LDFLAGS = \
+ut_LDFLAGS = \
 	${LDFLAGS} \
 	@LIBTBM_LIBS@ \
+	-lgtest \
 	-ldl \
 	-pthread
 
 check:
-	./tbm_utests
+	./ut
