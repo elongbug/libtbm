@@ -1062,8 +1062,8 @@ tbm_bo_export_fd(tbm_bo bo)
 
 	_tbm_bufmgr_mutex_lock();
 
-	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), 0);
-	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), 0);
+	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), -1);
+	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), -1);
 
 	bufmgr = gBufMgr;
 
