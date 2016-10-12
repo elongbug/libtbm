@@ -31,6 +31,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 **************************************************************************/
 
+#include "config.h"
+
 #include "tbm_bufmgr_int.h"
 #include "tbm_sync.h"
 
@@ -75,10 +77,13 @@ _log_errno()
 	int		errnum = errno;
 	char	buf[ERRNO_BUF_SIZE];
 
-	if (strerror_r(errnum, buf, ERRNO_BUF_SIZE) == 0)
+	if (strerror_r(errnum, buf, ERRNO_BUF_SIZE) == 0) {
 		TBM_LOG_E("errno : %d(%s)\n", errnum, buf);
-	else
+		return;
+	} else {
 		TBM_LOG_E("errno : %d()\n", errnum);
+		return;
+	}
 }
 
 static inline void

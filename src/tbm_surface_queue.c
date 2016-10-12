@@ -29,6 +29,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 **************************************************************************/
 
+#include "config.h"
+
 #include "tbm_bufmgr_int.h"
 #include "list.h"
 

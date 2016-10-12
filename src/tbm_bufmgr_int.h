@@ -93,7 +93,7 @@ extern int bDlog;
 
 #define TBM_LOG_I(fmt, ...) {\
 	if (bDlog) {\
-		LOGD("[TBM:I] " fmt, ##__VA_ARGS__);\
+		LOGI("[TBM:I] " fmt, ##__VA_ARGS__);\
 	} \
 	else {\
 		fprintf(stderr, "[TBM:I(%d)(%s:%d)] " fmt, getpid(), __func__, __LINE__, ##__VA_ARGS__);\

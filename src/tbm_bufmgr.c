@@ -681,7 +681,7 @@ tbm_bufmgr_init(int fd)
 
 #ifdef TBM_BUFMGR_INIT_TIME
 	/* get the end tv */
- 	gettimeofday(&end_tv, NULL);
+	gettimeofday(&end_tv, NULL);
 	TBM_LOG_I("tbm_bufmgr_init time: %ld ms", ((end_tv.tv_sec * 1000 + end_tv.tv_usec / 1000) - (start_tv.tv_sec * 1000 + start_tv.tv_usec / 1000)));
 #endif
 

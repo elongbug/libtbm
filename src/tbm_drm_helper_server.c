@@ -31,13 +31,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define WL_HIDE_DEPRECATED
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stddef.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
+#include "config.h"
 
 #include <xf86drm.h>
 
