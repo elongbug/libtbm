@@ -119,7 +119,13 @@ tbm_drm_helper_get_auth_info(int *auth_fd, char **device, uint32_t *capabilities
 	}
 
 	wl_registry_add_listener(wl_registry, &registry_listener, tbm_drm_client);
-	wl_display_roundtrip(display); //For Gloabl registry
+	if (wl_display_roundtrip(display) < 0) { //For Gloabl registry
+		TBM_LOG_E("Failed to wl_display_roundtrip for global registry\n");
+		wl_registry_destroy(wl_registry);
+		wl_display_disconnect(display);
+		free(tbm_drm_client);
+		return 0;
+	}
 
 	if (!tbm_drm_client->wl_tbm_drm_auth) {
 		TBM_LOG_E("Failed to get wl_tbm_drm_auth interface\n");
@@ -131,7 +137,15 @@ tbm_drm_helper_get_auth_info(int *auth_fd, char **device, uint32_t *capabilities
 	}
 
 	wl_tbm_drm_auth_get_authentication_info(tbm_drm_client->wl_tbm_drm_auth);
-	wl_display_roundtrip(display);
+	if (wl_display_roundtrip(display) < 0) {
+		TBM_LOG_E("Failed to wl_display_roundtrip get auth info\n");
+		wl_tbm_drm_auth_set_user_data(tbm_drm_client->wl_tbm_drm_auth, NULL);
+		wl_tbm_drm_auth_destroy(tbm_drm_client->wl_tbm_drm_auth);
+		wl_registry_destroy(wl_registry);
+		wl_display_disconnect(display);
+		free(tbm_drm_client);
+		return 0;
+	}
 
 	if (tbm_drm_client->auth_fd < 0) {
 		TBM_LOG_E("Failed to get auth info\n");
