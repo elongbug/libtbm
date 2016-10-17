@@ -1551,7 +1551,7 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 				  ++bo_cnt,
 				  bo,
 				  bo->ref_cnt,
-				  tbm_bo_size(bo) / 1024,
+				  bufmgr->backend->bo_size(bo) / 1024,
 				  bo->lock_cnt,
 				  bo->map_cnt,
 				  bo->flags,
