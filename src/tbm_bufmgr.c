@@ -1531,7 +1531,7 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 				TBM_DEBUG(" bo:%-12p  %-26d%-10d\n",
 					  surf->bos[i],
 					  surf->bos[i]->ref_cnt,
-					  bufmgr->backend->bo_size(bo) / 1024);
+					  bufmgr->backend->bo_size(surf->bos[i]) / 1024);
 			}
 
 			memset(app_name, 0x0, 255 * sizeof(char));
