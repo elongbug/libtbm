@@ -919,8 +919,6 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 		return NULL;
 	}
 
-	bufmgr->bo_cnt++;
-
 	bo->bufmgr = bufmgr;
 
 	bo_priv = bufmgr->backend->bo_import(bo, key);
@@ -944,6 +942,8 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 			}
 		}
 	}
+
+	bufmgr->bo_cnt++;
 
 	bo->ref_cnt = 1;
 	bo->priv = bo_priv;
@@ -992,8 +992,6 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 		return NULL;
 	}
 
-	bufmgr->bo_cnt++;
-
 	bo->bufmgr = bufmgr;
 
 	bo_priv = bufmgr->backend->bo_import_fd(bo, fd);
@@ -1017,6 +1015,8 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 			}
 		}
 	}
+
+	bufmgr->bo_cnt++;
 
 	bo->ref_cnt = 1;
 	bo->priv = bo_priv;
