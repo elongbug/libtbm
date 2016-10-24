@@ -1392,9 +1392,14 @@ tbm_surface_queue_flush(tbm_surface_queue_h surface_queue)
 	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(_tbm_surface_queue_is_valid(surface_queue),
 			       TBM_SURFACE_QUEUE_ERROR_INVALID_QUEUE);
 
-	pthread_mutex_lock(&surface_queue->lock);
-
 	TBM_QUEUE_TRACE("tbm_surface_queue(%p)\n", surface_queue);
+
+	if (surface_queue->num_attached == 0) {
+		_tbm_surf_queue_mutex_unlock();
+		return TBM_SURFACE_QUEUE_ERROR_NONE;
+	}
+
+	pthread_mutex_lock(&surface_queue->lock);
 
 	/* Destory surface and Push to free_queue */
 	LIST_FOR_EACH_ENTRY_SAFE(node, tmp, &surface_queue->list, link) {
