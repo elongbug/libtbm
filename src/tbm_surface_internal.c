@@ -585,27 +585,26 @@ tbm_surface_internal_create_with_flags(int width, int height,
 	uint32_t bo_size = 0;
 	int bo_idx;
 	int i, j;
+	bool bufmgr_initialized = false;
 
 	_tbm_surface_mutex_lock();
 
 	if (!g_surface_bufmgr) {
 		_init_surface_bufmgr();
 		LIST_INITHEAD(&g_surface_bufmgr->surf_list);
+		bufmgr_initialized = true;
 	}
 
 	mgr = g_surface_bufmgr;
 	if (!TBM_BUFMGR_IS_VALID(mgr)) {
-		TBM_TRACE("error: width(%d) height(%d) format(%s) flags(%d)\n",
-				width, height, _tbm_surface_internal_format_to_str(format), flags);
-		_tbm_surface_mutex_unlock();
-		return NULL;
+		TBM_LOG_E("The bufmgr is invalid\n");
+		goto check_valid_fail;
 	}
+
 	surf = calloc(1, sizeof(struct _tbm_surface));
 	if (!surf) {
-		TBM_TRACE("error: width(%d) height(%d) format(%s) flags(%d)\n",
-				width, height, _tbm_surface_internal_format_to_str(format), flags);
-		_tbm_surface_mutex_unlock();
-		return NULL;
+		TBM_LOG_E("fail to alloc surf\n");
+		goto alloc_surf_fail;
 	}
 
 	surf->bufmgr = mgr;
@@ -618,8 +617,12 @@ tbm_surface_internal_create_with_flags(int width, int height,
 
 	/* get size, stride and offset bo_idx */
 	for (i = 0; i < surf->info.num_planes; i++) {
-		_tbm_surface_internal_query_plane_data(surf, i, &size, &offset, &stride,
-						       &bo_idx);
+		if (!_tbm_surface_internal_query_plane_data(surf, i, &size,
+						&offset, &stride, &bo_idx)) {
+			TBM_LOG_E("fail to query plane data\n");
+			goto query_plane_data_fail;
+		}
+
 		surf->info.planes[i].size = size;
 		surf->info.planes[i].offset = offset;
 		surf->info.planes[i].stride = stride;
@@ -652,7 +655,7 @@ tbm_surface_internal_create_with_flags(int width, int height,
 			bo = calloc(1, sizeof(struct _tbm_bo));
 			if (!bo) {
 				TBM_LOG_E("fail to alloc bo struct\n");
-				goto alloc_fail;
+				goto alloc_bo_fail;
 			}
 
 			bo->bufmgr = surf->bufmgr;
@@ -664,7 +667,7 @@ tbm_surface_internal_create_with_flags(int width, int height,
 				TBM_LOG_E("fail to alloc bo priv\n");
 				free(bo);
 				pthread_mutex_unlock(&surf->bufmgr->lock);
-				goto alloc_fail;
+				goto alloc_bo_fail;
 			}
 
 			bo->ref_cnt = 1;
@@ -681,15 +684,13 @@ tbm_surface_internal_create_with_flags(int width, int height,
 			/* LCOV_EXCL_STOP */
 		} else {
 			surf->bos[i] = tbm_bo_alloc(mgr, bo_size, flags);
-		}
-
-		if (!surf->bos[i]) {
-			TBM_LOG_E("fail to alloc bo idx:%d\n", i);
-			goto alloc_fail;
+			if (!surf->bos[i]) {
+				TBM_LOG_E("fail to alloc bo idx:%d\n", i);
+				goto alloc_bo_fail;
+			}
 		}
 
 		_tbm_bo_set_surface(surf->bos[i], surf);
-
 	}
 
 	TBM_TRACE("width(%d) height(%d) format(%s) flags(%d) tbm_surface(%p)\n", width, height,
@@ -704,25 +705,23 @@ tbm_surface_internal_create_with_flags(int width, int height,
 
 	return surf;
 
-alloc_fail:
-
-	TBM_TRACE("error: width(%d) height(%d) format(%s) flags(%d)\n",
-			width, height, _tbm_surface_internal_format_to_str(format), flags);
-
+alloc_bo_fail:
 	for (j = 0; j < i; j++) {
 		if (surf->bos[j])
 			tbm_bo_unref(surf->bos[j]);
 	}
-
+query_plane_data_fail:
 	free(surf);
-	surf = NULL;
-
-	if (LIST_IS_EMPTY(&mgr->surf_list)) {
+alloc_surf_fail:
+check_valid_fail:
+	if (bufmgr_initialized) {
 		LIST_DELINIT(&mgr->surf_list);
 		_deinit_surface_bufmgr();
 	}
-
 	_tbm_surface_mutex_unlock();
+	TBM_TRACE("error: width(%d) height(%d) format(%s) flags(%d)\n",
+			width, height,
+			_tbm_surface_internal_format_to_str(format), flags);
 	return NULL;
 }
 
