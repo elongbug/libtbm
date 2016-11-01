@@ -1023,7 +1023,9 @@ tbm_surface_internal_get_info(tbm_surface_h surface, int opt,
 
 	if (map == 1) {
 		for (i = 0; i < surf->num_bos; i++) {
+			_tbm_surface_mutex_unlock();
 			bo_handles[i] = tbm_bo_map(surf->bos[i], TBM_DEVICE_CPU, opt);
+			_tbm_surface_mutex_lock();
 			if (bo_handles[i].ptr == NULL) {
 				for (j = 0; j < i; j++)
 					tbm_bo_unmap(surf->bos[j]);

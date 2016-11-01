@@ -1669,6 +1669,7 @@ tbm_surface_queue_sequence_create(int queue_size, int width,
 				   sizeof(tbm_queue_sequence));
 	if (data == NULL) {
 		free(surface_queue);
+		_tbm_surf_queue_mutex_unlock();
 		return NULL;
 	}
 
