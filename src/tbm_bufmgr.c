@@ -824,10 +824,11 @@ tbm_bo_unref(tbm_bo bo)
 			}
 		}
 
-		if (bo->lock_cnt > 0) {
+		while (bo->lock_cnt > 0) {
 			TBM_LOG_E("error lock_cnt:%d\n",
 				bo->lock_cnt);
 			_bo_unlock(bo);
+			bo->lock_cnt--;
 		}
 
 		/* call the bo_free */
