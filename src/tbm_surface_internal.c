@@ -344,7 +344,7 @@ _tbm_surface_internal_destroy(tbm_surface_h surface)
 int
 tbm_surface_internal_is_valid(tbm_surface_h surface)
 {
-	tbm_surface_h old_data = NULL, tmp = NULL;
+	tbm_surface_h old_data = NULL;
 
 	if (surface == NULL || g_surface_bufmgr == NULL) {
 		TBM_TRACE("error: tbm_surface(%p)\n", surface);
@@ -352,7 +352,7 @@ tbm_surface_internal_is_valid(tbm_surface_h surface)
 	}
 
 	if (!LIST_IS_EMPTY(&g_surface_bufmgr->surf_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &g_surface_bufmgr->surf_list, item_link) {
+		LIST_FOR_EACH_ENTRY(old_data, &g_surface_bufmgr->surf_list, item_link) {
 			if (old_data == surface) {
 				TBM_TRACE("tbm_surface(%p)\n", surface);
 				return 1;
