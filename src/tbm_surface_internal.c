@@ -736,29 +736,23 @@ tbm_surface_internal_create_with_bos(tbm_surface_info_s *info,
 	struct _tbm_bufmgr *mgr;
 	struct _tbm_surface *surf = NULL;
 	int i;
+	bool bufmgr_initialized = false;
 
 	_tbm_surface_mutex_lock();
 
 	if (!g_surface_bufmgr) {
 		_init_surface_bufmgr();
 		LIST_INITHEAD(&g_surface_bufmgr->surf_list);
+		bufmgr_initialized = true;
 	}
 
 	mgr = g_surface_bufmgr;
-	if (!TBM_BUFMGR_IS_VALID(mgr)) {
-		TBM_TRACE("error: width(%d) height(%d) format(%s) bo_num(%d)\n",
-				info->width, info->height, _tbm_surface_internal_format_to_str(info->format), num);
-		_tbm_surface_mutex_unlock();
-		return NULL;
-	}
+	if (!TBM_BUFMGR_IS_VALID(mgr))
+		goto check_valid_fail;
 
 	surf = calloc(1, sizeof(struct _tbm_surface));
-	if (!surf) {
-		TBM_TRACE("error: width(%d) height(%d) format(%s) bo_num(%d)\n",
-				info->width, info->height, _tbm_surface_internal_format_to_str(info->format), num);
-		_tbm_surface_mutex_unlock();
-		return NULL;
-	}
+	if (!surf)
+		goto alloc_surf_fail;
 
 	surf->bufmgr = mgr;
 	surf->info.width = info->width;
@@ -798,13 +792,13 @@ tbm_surface_internal_create_with_bos(tbm_surface_info_s *info,
 	surf->num_bos = num;
 	for (i = 0; i < num; i++) {
 		if (bos[i] == NULL)
-			goto bail1;
+			goto check_bo_fail;
 
 		surf->bos[i] = tbm_bo_ref(bos[i]);
 		_tbm_bo_set_surface(bos[i], surf);
 	}
 
-	TBM_TRACE("tbm_surface(%p) width(%d) height(%d) format(%s) bo_num(%d)\n", surf,
+	TBM_TRACE("tbm_surface(%p) width(%u) height(%u) format(%s) bo_num(%d)\n", surf,
 			info->width, info->height, _tbm_surface_internal_format_to_str(info->format), num);
 
 	LIST_INITHEAD(&surf->user_data_list);
@@ -815,26 +809,23 @@ tbm_surface_internal_create_with_bos(tbm_surface_info_s *info,
 	_tbm_surface_mutex_unlock();
 
 	return surf;
-bail1:
-	TBM_TRACE("error: width(%d) height(%d) format(%s) bo_num(%d)\n",
-				info->width, info->height, _tbm_surface_internal_format_to_str(info->format), num);
+
+check_bo_fail:
 	for (i = 0; i < num; i++) {
-		if (surf->bos[i]) {
+		if (surf->bos[i])
 			tbm_bo_unref(surf->bos[i]);
-			surf->bos[i] = NULL;
-		}
 	}
-
 	free(surf);
-	surf = NULL;
-
-	if (LIST_IS_EMPTY(&g_surface_bufmgr->surf_list)) {
+alloc_surf_fail:
+check_valid_fail:
+	if (bufmgr_initialized) {
 		LIST_DELINIT(&g_surface_bufmgr->surf_list);
 		_deinit_surface_bufmgr();
 	}
-
 	_tbm_surface_mutex_unlock();
-
+	TBM_TRACE("error: width(%u) height(%u) format(%s) bo_num(%d)\n",
+			info->width, info->height,
+			_tbm_surface_internal_format_to_str(info->format), num);
 	return NULL;
 }
 
