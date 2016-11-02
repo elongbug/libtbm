@@ -1209,12 +1209,6 @@ tbm_surface_internal_set_user_data(tbm_surface_h surface, unsigned long key,
 
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(tbm_surface_internal_is_valid(surface), 0);
 
-	if (LIST_IS_EMPTY(&surface->user_data_list)) {
-		TBM_TRACE("error: tbm_surface(%p) key(%lu)\n", surface, key);
-		_tbm_surface_mutex_unlock();
-		return 0;
-	}
-
 	old_data = user_data_lookup(&surface->user_data_list, key);
 	if (!old_data) {
 		TBM_TRACE("error: tbm_surface(%p) key(%lu)\n", surface, key);
@@ -1244,16 +1238,16 @@ tbm_surface_internal_get_user_data(tbm_surface_h surface, unsigned long key,
 
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(tbm_surface_internal_is_valid(surface), 0);
 
-	if (!data || LIST_IS_EMPTY(&surface->user_data_list)) {
+	if (!data) {
 		TBM_TRACE("error: tbm_surface(%p) key(%lu)\n", surface, key);
 		_tbm_surface_mutex_unlock();
 		return 0;
 	}
+	*data = NULL;
 
 	old_data = user_data_lookup(&surface->user_data_list, key);
 	if (!old_data) {
 		TBM_TRACE("error: tbm_surface(%p) key(%lu)\n", surface, key);
-		*data = NULL;
 		_tbm_surface_mutex_unlock();
 		return 0;
 	}
@@ -1276,12 +1270,6 @@ tbm_surface_internal_delete_user_data(tbm_surface_h surface,
 	_tbm_surface_mutex_lock();
 
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(tbm_surface_internal_is_valid(surface), 0);
-
-	if (LIST_IS_EMPTY(&surface->user_data_list)) {
-		TBM_TRACE("error: tbm_surface(%p) key(%lu)\n", surface, key);
-		_tbm_surface_mutex_unlock();
-		return 0;
-	}
 
 	old_data = user_data_lookup(&surface->user_data_list, key);
 	if (!old_data) {
@@ -1352,7 +1340,7 @@ tbm_surface_internal_set_debug_data(tbm_surface_h surface, char *key, char *valu
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(bufmgr, 0);
 
 	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &surface->debug_data_list, item_link) {
+		LIST_FOR_EACH_ENTRY(old_data, &surface->debug_data_list, item_link) {
 			if (!strcmp(old_data->key, key)) {
 				if (value)
 					old_data->value = strdup(value);
@@ -1393,14 +1381,14 @@ tbm_surface_internal_set_debug_data(tbm_surface_h surface, char *key, char *valu
 char *
 _tbm_surface_internal_get_debug_data(tbm_surface_h surface, char *key)
 {
-	tbm_surface_debug_data *old_data = NULL, *tmp = NULL;
+	tbm_surface_debug_data *old_data = NULL;
 
 	_tbm_surface_mutex_lock();
 
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(surface, NULL);
 
 	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &surface->debug_data_list, item_link) {
+		LIST_FOR_EACH_ENTRY(old_data, &surface->debug_data_list, item_link) {
 			if (!strcmp(old_data->key, key)) {
 				_tbm_surface_mutex_unlock();
 				return old_data->value;

@@ -251,10 +251,10 @@ tbm_user_data
 *user_data_lookup(struct list_head *user_data_list, unsigned long key)
 {
 	tbm_user_data *user_data = NULL;
-	tbm_user_data *old_data = NULL, *tmp = NULL;
+	tbm_user_data *old_data = NULL;
 
 	if (!LIST_IS_EMPTY(user_data_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, user_data_list, item_link) {
+		LIST_FOR_EACH_ENTRY(old_data, user_data_list, item_link) {
 			if (old_data->key == key) {
 				user_data = old_data;
 				return user_data;
