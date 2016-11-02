@@ -369,29 +369,39 @@ tbm_surface_internal_query_supported_formats(uint32_t **formats,
 {
 	struct _tbm_bufmgr *mgr;
 	int ret = 0;
+	bool bufmgr_initialized = false;
 
 	_tbm_surface_mutex_lock();
 
 	if (!g_surface_bufmgr) {
 		_init_surface_bufmgr();
 		LIST_INITHEAD(&g_surface_bufmgr->surf_list);
+		bufmgr_initialized = true;
 	}
 
 	mgr = g_surface_bufmgr;
 
-	if (!mgr->backend->surface_supported_format) {
-		TBM_TRACE("error: tbm_bufmgr(%p)\n", g_surface_bufmgr);
-		_tbm_surface_mutex_unlock();
-		return 0;
-	}
+	if (!mgr->backend->surface_supported_format)
+		goto fail;
 
 	ret = mgr->backend->surface_supported_format(formats, num);
+	if (!ret)
+		goto fail;
 
-	TBM_TRACE("tbm_bufmgr(%p) format num(%d)\n", g_surface_bufmgr, *num);
+	TBM_TRACE("tbm_bufmgr(%p) format num(%u)\n", g_surface_bufmgr, *num);
 
 	_tbm_surface_mutex_unlock();
 
 	return ret;
+
+fail:
+	if (bufmgr_initialized) {
+		LIST_DELINIT(&g_surface_bufmgr->surf_list);
+		_deinit_surface_bufmgr();
+	}
+	_tbm_surface_mutex_unlock();
+	TBM_TRACE("error: tbm_bufmgr(%p)\n", g_surface_bufmgr);
+	return 0;
 }
 
 int
