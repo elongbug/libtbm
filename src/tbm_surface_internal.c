@@ -1036,8 +1036,14 @@ tbm_surface_internal_get_info(tbm_surface_h surface, int opt,
 			}
 		}
 	} else {
-		for (i = 0; i < surf->num_bos; i++)
+		for (i = 0; i < surf->num_bos; i++) {
 			bo_handles[i] = tbm_bo_get_handle(surf->bos[i], TBM_DEVICE_CPU);
+			if (bo_handles[i].ptr == NULL) {
+				TBM_TRACE("error: tbm_surface(%p) opt(%d) map(%d)\n", surface, opt, map);
+				_tbm_surface_mutex_unlock();
+				return 0;
+			}
+		}
 	}
 
 	for (i = 0; i < surf->info.num_planes; i++) {
