@@ -1021,8 +1021,8 @@ TEST(tbm_surface_internal_get_plane_data, null_ptr_fail_1)
 
 TEST(tbm_surface_internal_get_size, work_flow_success_2)
 {
-	int actual_size = 0;
-	int expected_size = 1024;
+	unsigned int actual_size = 0;
+	unsigned int expected_size = 1024;
 	struct _tbm_surface surface;
 	struct _tbm_bufmgr bufmgr;
 
@@ -1041,8 +1041,8 @@ TEST(tbm_surface_internal_get_size, work_flow_success_2)
 
 TEST(tbm_surface_internal_get_size, work_flow_success_1)
 {
-	int actual_size = 0;
-	int expected_size = 0;
+	unsigned int actual_size = 0;
+	unsigned int expected_size = 0;
 	struct _tbm_surface surface;
 	struct _tbm_bufmgr bufmgr;
 
@@ -1058,8 +1058,8 @@ TEST(tbm_surface_internal_get_size, work_flow_success_1)
 
 TEST(tbm_surface_internal_get_size, null_ptr_fail_1)
 {
-	int actual_size = 0;
-	int expected_size = 0;
+	unsigned int actual_size = 0;
+	unsigned int expected_size = 0;
 
 	_init_test();
 

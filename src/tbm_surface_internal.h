@@ -231,7 +231,7 @@ tbm_bo tbm_surface_internal_get_bo(tbm_surface_h surface, int bo_idx);
  * @brief Gets the size of the surface.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @param[in] surface : the tbm_surface_h
- * @return the size of tbm_surface, otherwise -1.
+ * @return the size of tbm_surface, otherwise 0.
  * @par Example
    @code
    #include <tbm_surface.h>
@@ -246,7 +246,7 @@ tbm_bo tbm_surface_internal_get_bo(tbm_surface_h surface, int bo_idx);
    tbm_surface_destroy (surface);
    @endcode
  */
-int tbm_surface_internal_get_size(tbm_surface_h surface);
+unsigned int tbm_surface_internal_get_size(tbm_surface_h surface);
 
 /**
  * @brief Gets size, offset and pitch data of plane by the plane_index.
