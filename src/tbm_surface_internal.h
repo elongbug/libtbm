@@ -178,7 +178,7 @@ void tbm_surface_internal_unref(tbm_surface_h surface);
  * @brief Gets the number of buffer objects associated with the tbm_surface.
  * @since_tizen @if MOBILE 2.3 @elseif WEARABLE 2.3.1 @endif
  * @param[in] surface : the tbm_surface_h
- * @return the number of buffer objects associated with the tbm_surface_h, otherwise -1.
+ * @return the number of buffer objects associated with the tbm_surface_h, otherwise 0.
  * @par Example
    @code
    #include <tbm_surface.h>
@@ -322,7 +322,7 @@ int tbm_surface_internal_get_bpp(tbm_format format);
  * @since_tizen 2.4
  * @param[in] surface : the tbm_surface_h
  * @param[in] plane_idx : the bo index in the tbm_surface
- * @return bo index of plane, otherwise -1.
+ * @return bo index of plane, otherwise 0.
  * @par Example
    @code
    #include <tbm_surface.h>
