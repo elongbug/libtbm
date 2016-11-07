@@ -1350,9 +1350,7 @@ tbm_surface_queue_set_size(tbm_surface_queue_h
 		_notify_emit(surface_queue, &surface_queue->reset_noti);
 
 		return TBM_SURFACE_QUEUE_ERROR_NONE;
-	}
-	else {
-
+	} else {
 		if (surface_queue->queue_size > queue_size) {
 
 			need_del = surface_queue->queue_size - queue_size;
@@ -1498,7 +1496,7 @@ __tbm_queue_default_need_attach(tbm_surface_queue_h surface_queue)
 }
 
 static const tbm_surface_queue_interface tbm_queue_default_impl = {
-	NULL, 				/*__tbm_queue_default_init*/
+	NULL,				/*__tbm_queue_default_init*/
 	NULL,				/*__tbm_queue_default_reset*/
 	__tbm_queue_default_destroy,
 	__tbm_queue_default_need_attach,

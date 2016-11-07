@@ -48,7 +48,7 @@ typedef struct _tbm_surface_queue *tbm_surface_queue_h;
 typedef void (*tbm_surface_queue_notify_cb)(tbm_surface_queue_h surface_queue,
 		void *data);
 
-typedef tbm_surface_h (*tbm_surface_alloc_cb)(tbm_surface_queue_h surface_queue,
+typedef tbm_surface_h(*tbm_surface_alloc_cb)(tbm_surface_queue_h surface_queue,
 		void *data);
 
 typedef void (*tbm_surface_free_cb)(tbm_surface_queue_h surface_queue,
