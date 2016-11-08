@@ -525,8 +525,6 @@ _tbm_surface_queue_init(tbm_surface_queue_h surface_queue,
 	TBM_RETURN_IF_FAIL(surface_queue != NULL);
 	TBM_RETURN_IF_FAIL(impl != NULL);
 
-	memset(surface_queue, 0x00, sizeof(struct _tbm_surface_queue));
-
 	if (!g_surf_queue_bufmgr)
 		_init_tbm_surf_queue_bufmgr();
 
@@ -546,9 +544,9 @@ _tbm_surface_queue_init(tbm_surface_queue_h surface_queue,
 	LIST_INITHEAD(&surface_queue->list);
 
 	LIST_INITHEAD(&surface_queue->destory_noti);
-	LIST_INITHEAD(&surface_queue->acquirable_noti);
 	LIST_INITHEAD(&surface_queue->dequeuable_noti);
 	LIST_INITHEAD(&surface_queue->dequeue_noti);
+	LIST_INITHEAD(&surface_queue->acquirable_noti);
 	LIST_INITHEAD(&surface_queue->reset_noti);
 
 	if (surface_queue->impl && surface_queue->impl->init)
@@ -1227,6 +1225,8 @@ tbm_surface_queue_destroy(tbm_surface_queue_h surface_queue)
 
 	TBM_QUEUE_TRACE("tbm_surface_queue(%p)\n", surface_queue);
 
+	LIST_DEL(&surface_queue->item_link);
+
 	LIST_FOR_EACH_ENTRY_SAFE(node, tmp, &surface_queue->list, link)
 		_queue_delete_node(surface_queue, node);
 
@@ -1236,16 +1236,14 @@ tbm_surface_queue_destroy(tbm_surface_queue_h surface_queue)
 	_notify_emit(surface_queue, &surface_queue->destory_noti);
 
 	_notify_remove_all(&surface_queue->destory_noti);
-	_notify_remove_all(&surface_queue->acquirable_noti);
 	_notify_remove_all(&surface_queue->dequeuable_noti);
+	_notify_remove_all(&surface_queue->dequeue_noti);
+	_notify_remove_all(&surface_queue->acquirable_noti);
 	_notify_remove_all(&surface_queue->reset_noti);
 
 	pthread_mutex_destroy(&surface_queue->lock);
 
-	LIST_DEL(&surface_queue->item_link);
-
 	free(surface_queue);
-	surface_queue = NULL;
 
 	if (LIST_IS_EMPTY(&g_surf_queue_bufmgr->surf_queue_list))
 		_deinit_tbm_surf_queue_bufmgr();
