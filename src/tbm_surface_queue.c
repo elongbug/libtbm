@@ -948,6 +948,8 @@ tbm_surface_queue_dequeue(tbm_surface_queue_h
 
 	_tbm_surf_queue_mutex_lock();
 
+	*surface = NULL;
+
 	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(_tbm_surface_queue_is_valid(surface_queue),
 			       TBM_SURFACE_QUEUE_ERROR_INVALID_QUEUE);
 	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(surface != NULL,
@@ -960,17 +962,8 @@ tbm_surface_queue_dequeue(tbm_surface_queue_h
 	else
 		node = _tbm_surface_queue_dequeue(surface_queue);
 
-	if (node == NULL) {
-		*surface = NULL;
-		pthread_mutex_unlock(&surface_queue->lock);
-
-		_tbm_surf_queue_mutex_unlock();
-		return TBM_SURFACE_QUEUE_ERROR_EMPTY;
-	}
-
-	if (node->surface == NULL) {
-		*surface = NULL;
-		TBM_LOG_E("_queue_node_pop_front  failed\n");
+	if (node == NULL || node->surface == NULL) {
+		TBM_LOG_E("_queue_node_pop_front failed\n");
 		pthread_mutex_unlock(&surface_queue->lock);
 
 		_tbm_surf_queue_mutex_unlock();
@@ -1123,6 +1116,8 @@ tbm_surface_queue_acquire(tbm_surface_queue_h
 
 	_tbm_surf_queue_mutex_lock();
 
+	*surface = NULL;
+
 	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(_tbm_surface_queue_is_valid(surface_queue),
 			       TBM_SURFACE_QUEUE_ERROR_INVALID_QUEUE);
 	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(surface != NULL,
@@ -1135,17 +1130,8 @@ tbm_surface_queue_acquire(tbm_surface_queue_h
 	else
 		node = _tbm_surface_queue_acquire(surface_queue);
 
-	if (node == NULL) {
-		*surface = NULL;
-		pthread_mutex_unlock(&surface_queue->lock);
-
-		_tbm_surf_queue_mutex_unlock();
-		return TBM_SURFACE_QUEUE_ERROR_EMPTY;
-	}
-
-	if (node->surface == NULL) {
-		*surface = NULL;
-		TBM_LOG_E("_queue_node_pop_front  failed\n");
+	if (node == NULL || node->surface == NULL) {
+		TBM_LOG_E("_queue_node_pop_front failed\n");
 		pthread_mutex_unlock(&surface_queue->lock);
 
 		_tbm_surf_queue_mutex_unlock();
@@ -1425,6 +1411,8 @@ tbm_surface_queue_get_surfaces(tbm_surface_queue_h surface_queue,
 
 	_tbm_surf_queue_mutex_lock();
 
+	*num = 0;
+
 	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(_tbm_surface_queue_is_valid(surface_queue),
 			       TBM_SURFACE_QUEUE_ERROR_INVALID_QUEUE);
 	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(num != NULL,
@@ -1432,7 +1420,6 @@ tbm_surface_queue_get_surfaces(tbm_surface_queue_h surface_queue,
 
 	pthread_mutex_lock(&surface_queue->lock);
 
-	*num = 0;
 	LIST_FOR_EACH_ENTRY(node, &surface_queue->list, link) {
 		if (surfaces)
 			surfaces[*num] = node->surface;
