@@ -1070,7 +1070,6 @@ tbm_surface_queue_release(tbm_surface_queue_h
 	}
 
 	if (surface_queue->queue_size < surface_queue->num_attached) {
-
 		TBM_QUEUE_TRACE("deatch tbm_surface_queue(%p) surface(%p)\n", surface_queue, node->surface);
 
 		if (surface_queue->impl && surface_queue->impl->need_detach)
@@ -1093,7 +1092,7 @@ tbm_surface_queue_release(tbm_surface_queue_h
 		pthread_mutex_unlock(&surface_queue->lock);
 
 		_tbm_surf_queue_mutex_unlock();
-		return TBM_SURFACE_QUEUE_ERROR_NONE;
+		return TBM_SURFACE_QUEUE_ERROR_INVALID_SURFACE;
 	}
 
 	node->type = QUEUE_NODE_TYPE_RELEASE;
