@@ -1462,7 +1462,7 @@ __tbm_queue_default_destroy(tbm_surface_queue_h surface_queue)
 static void
 __tbm_queue_default_need_attach(tbm_surface_queue_h surface_queue)
 {
-	tbm_queue_default *data = surface_queue->impl_data;
+	tbm_queue_default *data = (tbm_queue_default *)surface_queue->impl_data;
 	tbm_surface_h surface;
 
 	if (surface_queue->queue_size == surface_queue->num_attached)
@@ -1545,7 +1545,7 @@ typedef struct {
 static void
 __tbm_queue_sequence_init(tbm_surface_queue_h surface_queue)
 {
-	tbm_queue_sequence *data = surface_queue->impl_data;
+	tbm_queue_sequence *data = (tbm_queue_sequence *)surface_queue->impl_data;
 
 	_queue_init(&data->dequeue_list);
 }
@@ -1553,7 +1553,7 @@ __tbm_queue_sequence_init(tbm_surface_queue_h surface_queue)
 static void
 __tbm_queue_sequence_reset(tbm_surface_queue_h surface_queue)
 {
-	tbm_queue_sequence *data = surface_queue->impl_data;
+	tbm_queue_sequence *data = (tbm_queue_sequence *)surface_queue->impl_data;
 
 	_queue_init(&data->dequeue_list);
 }
@@ -1567,7 +1567,7 @@ __tbm_queue_sequence_destroy(tbm_surface_queue_h surface_queue)
 static void
 __tbm_queue_sequence_need_attach(tbm_surface_queue_h surface_queue)
 {
-	tbm_queue_sequence *data = surface_queue->impl_data;
+	tbm_queue_sequence *data = (tbm_queue_sequence *)surface_queue->impl_data;
 	tbm_surface_h surface;
 
 	if (surface_queue->queue_size == surface_queue->num_attached)
@@ -1598,7 +1598,7 @@ static void
 __tbm_queue_sequence_enqueue(tbm_surface_queue_h surface_queue,
 			     queue_node *node)
 {
-	tbm_queue_sequence *data = surface_queue->impl_data;
+	tbm_queue_sequence *data = (tbm_queue_sequence *)surface_queue->impl_data;
 	queue_node *next, *tmp;
 
 	node->priv_flags = 0;
@@ -1615,7 +1615,7 @@ static queue_node *
 __tbm_queue_sequence_dequeue(tbm_surface_queue_h
 			     surface_queue)
 {
-	tbm_queue_sequence *data = surface_queue->impl_data;
+	tbm_queue_sequence *data = (tbm_queue_sequence *)surface_queue->impl_data;
 	queue_node *node;
 
 	node = _tbm_surface_queue_dequeue(surface_queue);
