@@ -1000,45 +1000,39 @@ tbm_surface_queue_can_dequeue(tbm_surface_queue_h surface_queue, int wait)
 			surface_queue->impl->need_attach(surface_queue);
 
 		if (!_tbm_surface_queue_is_valid(surface_queue)) {
-				TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
-				_tbm_surf_queue_mutex_unlock();
-				return 0;
+			TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
+			_tbm_surf_queue_mutex_unlock();
+			return 0;
 		}
 	}
 
-	if (_queue_is_empty(&surface_queue->free_queue)) {
-		if (wait &&
-			_tbm_surface_queue_get_node_count(surface_queue, QUEUE_NODE_TYPE_ACQUIRE)) {
+	if (!_queue_is_empty(&surface_queue->free_queue)) {
+		pthread_mutex_unlock(&surface_queue->lock);
+		_tbm_surf_queue_mutex_unlock();
+		return 1;
+	}
 
-			_tbm_surf_queue_mutex_unlock();
+	if (wait && _tbm_surface_queue_get_node_count(surface_queue,
+						QUEUE_NODE_TYPE_ACQUIRE)) {
+		_tbm_surf_queue_mutex_unlock();
+		pthread_cond_wait(&surface_queue->free_cond, &surface_queue->lock);
+		_tbm_surf_queue_mutex_lock();
 
-			pthread_cond_wait(&surface_queue->free_cond, &surface_queue->lock);
-
-			_tbm_surf_queue_mutex_lock();
-
-			if (!_tbm_surface_queue_is_valid(surface_queue)) {
-				  TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
-				  _tbm_surf_queue_mutex_unlock();
-				  return 0;
-			}
-
+		if (!_tbm_surface_queue_is_valid(surface_queue)) {
+			  TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
 			pthread_mutex_unlock(&surface_queue->lock);
-
-			_tbm_surf_queue_mutex_unlock();
-			return 1;
+			  _tbm_surf_queue_mutex_unlock();
+			  return 0;
 		}
 
 		pthread_mutex_unlock(&surface_queue->lock);
-
 		_tbm_surf_queue_mutex_unlock();
-		return 0;
+		return 1;
 	}
 
 	pthread_mutex_unlock(&surface_queue->lock);
-
 	_tbm_surf_queue_mutex_unlock();
-
-	return 1;
+	return 0;
 }
 
 tbm_surface_queue_error_e
@@ -1164,39 +1158,33 @@ tbm_surface_queue_can_acquire(tbm_surface_queue_h surface_queue, int wait)
 
 	TBM_QUEUE_TRACE("tbm_surface_queue(%p)\n", surface_queue);
 
-	if (_queue_is_empty(&surface_queue->dirty_queue)) {
-		if (wait &&
-			_tbm_surface_queue_get_node_count(surface_queue, QUEUE_NODE_TYPE_DEQUEUE)) {
+	if (!_queue_is_empty(&surface_queue->dirty_queue)) {
+		pthread_mutex_unlock(&surface_queue->lock);
+		_tbm_surf_queue_mutex_unlock();
+		return 1;
+	}
 
-			_tbm_surf_queue_mutex_unlock();
+	if (wait && _tbm_surface_queue_get_node_count(surface_queue,
+						QUEUE_NODE_TYPE_DEQUEUE)) {
+		_tbm_surf_queue_mutex_unlock();
+		pthread_cond_wait(&surface_queue->dirty_cond, &surface_queue->lock);
+		_tbm_surf_queue_mutex_lock();
 
-			pthread_cond_wait(&surface_queue->dirty_cond, &surface_queue->lock);
-
-			_tbm_surf_queue_mutex_lock();
-
-			if (!_tbm_surface_queue_is_valid(surface_queue)) {
-				  TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
-				  _tbm_surf_queue_mutex_unlock();
-				  return 0;
-			}
-
+		if (!_tbm_surface_queue_is_valid(surface_queue)) {
+			  TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
 			pthread_mutex_unlock(&surface_queue->lock);
-
-			_tbm_surf_queue_mutex_unlock();
-			return 1;
+			  _tbm_surf_queue_mutex_unlock();
+			  return 0;
 		}
 
 		pthread_mutex_unlock(&surface_queue->lock);
-
 		_tbm_surf_queue_mutex_unlock();
-		return 0;
+		return 1;
 	}
 
 	pthread_mutex_unlock(&surface_queue->lock);
-
 	_tbm_surf_queue_mutex_unlock();
-
-	return 1;
+	return 0;
 }
 
 void
