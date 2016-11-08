@@ -171,7 +171,7 @@ _tbm_surf_queue_mutex_init(void)
 	return true;
 }
 
-void
+static void
 _tbm_surf_queue_mutex_lock(void)
 {
 	if (!_tbm_surf_queue_mutex_init())
@@ -180,7 +180,7 @@ _tbm_surf_queue_mutex_lock(void)
 	pthread_mutex_lock(&tbm_surf_queue_lock);
 }
 
-void
+static void
 _tbm_surf_queue_mutex_unlock(void)
 {
 	pthread_mutex_unlock(&tbm_surf_queue_lock);
@@ -432,7 +432,7 @@ _tbm_surface_queue_get_node_count(tbm_surface_queue_h surface_queue, Queue_Node_
 	return count;
 }
 
-void
+static void
 _tbm_surface_queue_attach(tbm_surface_queue_h surface_queue,
 			  tbm_surface_h surface)
 {
@@ -449,7 +449,7 @@ _tbm_surface_queue_attach(tbm_surface_queue_h surface_queue,
 	_queue_node_push_back(&surface_queue->free_queue, node);
 }
 
-void
+static void
 _tbm_surface_queue_detach(tbm_surface_queue_h surface_queue,
 			  tbm_surface_h surface)
 {
@@ -463,7 +463,7 @@ _tbm_surface_queue_detach(tbm_surface_queue_h surface_queue,
 	}
 }
 
-void
+static void
 _tbm_surface_queue_enqueue(tbm_surface_queue_h surface_queue,
 			   queue_node *node, int push_back)
 {
@@ -473,7 +473,7 @@ _tbm_surface_queue_enqueue(tbm_surface_queue_h surface_queue,
 		_queue_node_push_front(&surface_queue->dirty_queue, node);
 }
 
-queue_node *
+static queue_node *
 _tbm_surface_queue_dequeue(tbm_surface_queue_h surface_queue)
 {
 	queue_node *node = NULL;
@@ -491,7 +491,7 @@ _tbm_surface_queue_dequeue(tbm_surface_queue_h surface_queue)
 	return node;
 }
 
-queue_node *
+static queue_node *
 _tbm_surface_queue_acquire(tbm_surface_queue_h surface_queue)
 {
 	queue_node *node = NULL;
@@ -504,7 +504,7 @@ _tbm_surface_queue_acquire(tbm_surface_queue_h surface_queue)
 	return node;
 }
 
-void
+static void
 _tbm_surface_queue_release(tbm_surface_queue_h surface_queue,
 			   queue_node *node, int push_back)
 {
@@ -514,7 +514,7 @@ _tbm_surface_queue_release(tbm_surface_queue_h surface_queue,
 		_queue_node_push_front(&surface_queue->free_queue, node);
 }
 
-void
+static void
 _tbm_surface_queue_init(tbm_surface_queue_h surface_queue,
 			int queue_size,
 			int width, int height, int format,
