@@ -76,15 +76,14 @@ struct _tbm_bufmgr_backend {
 
 	/**
 	* @brief deinitialize the bufmgr private.
-	* @param[in] bufmgr : the private of the bufmgr
-	* @return 1 if this function succeeds, otherwise 0.
+	* @param[in] priv : the private of the bufmgr
 	*/
 	void (*bufmgr_deinit)(void *priv);
 
 	/**
 	* @brief get the size of a bo.
 	* @param[in] bo : the buffer object
-	* @return 1 if this function succeeds, otherwise 0.
+	* @return size if this function succeeds, otherwise 0.
 	*/
 	int (*bo_size)(tbm_bo bo);
 
@@ -134,7 +133,7 @@ struct _tbm_bufmgr_backend {
 	* @brief map the buffer object according to the device type and the option.
 	* @param[in] bo : the buffer object
 	* @param[in] device : the device type to get a handle
-	* @param[in] option : the option to access the buffer object
+	* @param[in] opt : the option to access the buffer object
 	* @return the handle of the buffer object
 	*/
 	tbm_bo_handle(*bo_map)(tbm_bo bo, int device, int opt);
@@ -158,7 +157,7 @@ struct _tbm_bufmgr_backend {
 	* @brief lock the buffer object with a device and an opt.
 	* @param[in] bo : the buffer object
 	* @param[in] device : the device type to get a handle
-	* @param[in] option : the option to access the buffer object
+	* @param[in] opt : the option to access the buffer object
 	* @return 1 if this function succeeds, otherwise 0.
 	* @remark This function pointer could be null. (default: use the tizen global lock)
 	*/
@@ -166,7 +165,7 @@ struct _tbm_bufmgr_backend {
 
 	/**
 	* @brief query the formats list and the num to be supported by backend.
-	* @param[out] *formats : format array list. this array has to be allocated by backend funtion
+	* @param[out] **formats : format array list. this array has to be allocated by backend funtion
 	* @param[out] *num : the number of the formats to be supported by backend
 	* @return 1 if this function succeeds, otherwise 0.
 	*/
@@ -174,7 +173,6 @@ struct _tbm_bufmgr_backend {
 
 	/**
 	* @brief get the plane data of the surface.
-	* @param[in] surface : the surface
 	* @param[in] width : the width of the surface
 	* @param[in] height : the height of the surface
 	* @param[in] format : the format of the surface
@@ -219,10 +217,10 @@ struct _tbm_bufmgr_backend {
 	int (*bo_get_flags)(tbm_bo bo);
 
 	/**
-	* @brief get the tbm flags of memory type
-	* @param[in] bo : the buffer object
-	* @see #TBM_BO_FLAGS
-	* @return tbm flags of memory type is this function succeeds, otherwise 0.
+	* @brief get(bind) the native display
+	* @param[in] bufmgr : the buffer object
+	* @param[in] NativeDisplay : the native display
+	* @return 1 if this function succeeds, otherwise 0.
 	*/
 	int (*bufmgr_bind_native_display)(tbm_bufmgr bufmgr, void *NativeDisplay);
 
@@ -233,7 +231,7 @@ struct _tbm_bufmgr_backend {
 	* @param[in] height : the height of surface
 	* @param[in] format : the format of surface
 	* @param[in] flags : the flags of memory type
-	* @param[in] idx : the index of bo in surface
+	* @param[in] bo_idx : the index of bo in surface
 	* @return pointer of the bo private.
 	*/
 	void * (*surface_bo_alloc)(tbm_bo bo, int width, int height, int format, int flags, int bo_idx);
