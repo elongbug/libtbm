@@ -1394,14 +1394,14 @@ tbm_bo_delete_user_data(tbm_bo bo, unsigned long key)
 unsigned int
 tbm_bufmgr_get_capability(tbm_bufmgr bufmgr)
 {
-	int capabilities = TBM_BUFMGR_CAPABILITY_NONE;
+	unsigned int capabilities = TBM_BUFMGR_CAPABILITY_NONE;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(bufmgr), TBM_BUFMGR_CAPABILITY_NONE);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(bufmgr == gBufMgr, TBM_BUFMGR_CAPABILITY_NONE);
 
-	TBM_TRACE("tbm_bufmgr(%p) capability(%d)\n", bufmgr, bufmgr->capabilities);
+	TBM_TRACE("tbm_bufmgr(%p) capability(%u)\n", bufmgr, bufmgr->capabilities);
 
 	capabilities = bufmgr->capabilities;
 
@@ -1665,14 +1665,16 @@ tbm_bufmgr_bind_native_display(tbm_bufmgr bufmgr, void *NativeDisplay)
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), 0);
 
 	if (!bufmgr->backend->bufmgr_bind_native_display) {
-		TBM_TRACE("error: tbm_bufmgr(%p) NativeDisplay(%p)\n", bufmgr, NativeDisplay);
+		TBM_TRACE("skip: tbm_bufmgr(%p) NativeDisplay(%p)\n",
+				bufmgr, NativeDisplay);
 		_tbm_bufmgr_mutex_unlock();
 		return 1;
 	}
 
 	ret = bufmgr->backend->bufmgr_bind_native_display(bufmgr, NativeDisplay);
 	if (!ret) {
-		TBM_TRACE("error: tbm_bufmgr(%p) NativeDisplay(%p)\n", bufmgr, NativeDisplay);
+		TBM_TRACE("error: tbm_bufmgr(%p) NativeDisplay(%p)\n",
+				bufmgr, NativeDisplay);
 		_tbm_bufmgr_mutex_unlock();
 		return 0;
 	}
