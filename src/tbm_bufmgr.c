@@ -1439,16 +1439,8 @@ tbm_get_last_error(void)
 void
 tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 {
-	tbm_bo bo = NULL, tmp_bo = NULL;
-	int bo_cnt = 0;
-	tbm_surface_h surf = NULL, tmp_surf = NULL;
-	int surf_cnt = 0;
-	int i;
-	char app_name[255] = {0,};
-	unsigned int pid = 0;
-	char title[255] = {0,};
-	char data[255] = {0,};
-	tbm_surface_debug_data *debug_old_data = NULL, *debug_tmp = NULL;
+	char app_name[255] = {0,}, title[255] = {0,};
+	tbm_surface_debug_data *debug_old_data = NULL;
 
 	pthread_mutex_lock(&gLock);
 
@@ -1463,10 +1455,11 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 	_tbm_util_get_appname_brief(app_name);
 	TBM_DEBUG("============TBM DEBUG: %s(%d)===========================\n",
 		  app_name, getpid());
-	memset(app_name, 0x0, 255 * sizeof(char));
+
 	snprintf(title, 255, "%s", "no  surface     refcnt  width  height  bpp  size    n_b  n_p  flags  format    app_name       ");
+
 	if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(debug_old_data, debug_tmp, &bufmgr->debug_key_list, item_link) {
+		LIST_FOR_EACH_ENTRY(debug_old_data, &bufmgr->debug_key_list, item_link) {
 			strncat(title, "  ", 3);
 			strncat(title, debug_old_data->key, strlen(debug_old_data->key) + 1);
 		}
@@ -1474,21 +1467,28 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 
 	TBM_DEBUG("[tbm_surface information]\n");
 	TBM_DEBUG("%s\n", title);
+
 	/* show the tbm_surface information in surf_list */
 	if (!LIST_IS_EMPTY(&bufmgr->surf_list)) {
-		char *value = NULL;
+		tbm_surface_h surf = NULL;
+		int surf_cnt = 0;
 
-		LIST_FOR_EACH_ENTRY_SAFE(surf, tmp_surf, &bufmgr->surf_list, item_link) {
+		LIST_FOR_EACH_ENTRY(surf, &bufmgr->surf_list, item_link) {
+			char data[255] = {0,};
+			unsigned int pid;
+			int i;
+
 			pid = _tbm_surface_internal_get_debug_pid(surf);
 			if (!pid) {
 				/* if pid is null, set the self_pid */
 				pid = getpid();
 			}
 
+			memset(app_name, 0x0, 255 * sizeof(char));
 			_tbm_util_get_appname_from_pid(pid, app_name);
 			_tbm_util_get_appname_brief(app_name);
 
-			snprintf(data, 255, "%-2d  %-9p    %-4d  %-5d  %-6d  %-3d  %-6d   %-2d   %-2d    %-3d  %-8s  %-15s",
+			snprintf(data, 255, "%-2d  %-9p    %-4d  %-5u  %-6u  %-3u  %-6u   %-2d   %-2d    %-3d  %-8s  %-15s",
 				  ++surf_cnt,
 				  surf,
 				  surf->refcnt,
@@ -1503,7 +1503,9 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 				  app_name);
 
 			if (!LIST_IS_EMPTY(&bufmgr->debug_key_list)) {
-				LIST_FOR_EACH_ENTRY_SAFE(debug_old_data, debug_tmp, &bufmgr->debug_key_list, item_link) {
+				LIST_FOR_EACH_ENTRY(debug_old_data, &bufmgr->debug_key_list, item_link) {
+					char *value;
+
 					strncat(data, "  ", 3);
 
 					value = _tbm_surface_internal_get_debug_data(surf, debug_old_data->key);
@@ -1521,12 +1523,9 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 					  surf->bos[i]->ref_cnt,
 					  bufmgr->backend->bo_size(surf->bos[i]) / 1024);
 			}
-
-			memset(app_name, 0x0, 255 * sizeof(char));
 		}
-	} else {
+	} else
 		TBM_DEBUG("no tbm_surfaces.\n");
-	}
 	TBM_DEBUG("\n");
 
 	TBM_DEBUG("[tbm_bo information]\n");
@@ -1534,8 +1533,11 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 
 	/* show the tbm_bo information in bo_list */
 	if (!LIST_IS_EMPTY(&bufmgr->bo_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(bo, tmp_bo, &bufmgr->bo_list, item_link) {
-			TBM_DEBUG("%-4d%-11p   %-4d  %-6d     %-5d     %-4d    %-3d  %-11p\n",
+		int bo_cnt = 0;
+		tbm_bo bo = NULL;
+
+		LIST_FOR_EACH_ENTRY(bo, &bufmgr->bo_list, item_link) {
+			TBM_DEBUG("%-4d%-11p   %-4d  %-6d     %-5d     %-4u    %-3d  %-11p\n",
 				  ++bo_cnt,
 				  bo,
 				  bo->ref_cnt,
@@ -1545,9 +1547,8 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 				  bo->flags,
 				  bo->surface);
 		}
-	} else {
+	} else
 		TBM_DEBUG("no tbm_bos.\n");
-	}
 	TBM_DEBUG("\n");
 
 	TBM_DEBUG("===============================================================\n");
@@ -1574,28 +1575,25 @@ tbm_bufmgr_debug_trace(tbm_bufmgr bufmgr, int onoff)
 int
 tbm_bufmgr_debug_queue_dump(char *path, int count, int onoff)
 {
-	int w = 0, h = 0;
-
 	TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
 	TBM_LOG_D("path=%s count=%d onoff=%d\n", path, count, onoff);
 
 	pthread_mutex_lock(&gLock);
 
-	if (onoff == 1) {
+	if (onoff == 0) {
+		b_dump_queue = 0;
+		tbm_surface_internal_dump_end();
+	} else {
+		int w, h;
+
 		if (_tbm_util_get_max_surface_size(&w, &h) == 0) {
-			TBM_LOG_I("No tbm_surface.\n");
+			TBM_LOG_I("Fail to get tbm_surface size.\n");
 			pthread_mutex_unlock(&gLock);
 			return 0;
 		}
 
 		tbm_surface_internal_dump_start(path, w, h, count);
 		b_dump_queue = 1;
-	} else if (onoff == 0) {
-		tbm_surface_internal_dump_end();
-		b_dump_queue = 0;
-	} else {
-		pthread_mutex_unlock(&gLock);
-		return 0;
 	}
 
 	pthread_mutex_unlock(&gLock);
@@ -1605,8 +1603,8 @@ tbm_bufmgr_debug_queue_dump(char *path, int count, int onoff)
 int
 tbm_bufmgr_debug_dump_all(char *path)
 {
-	int w = 0, h = 0, count = 0;
-	tbm_surface_h surface = NULL, tmp = NULL;
+	int w, h, count = 0;
+	tbm_surface_h surface = NULL;
 
 	TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
 	TBM_LOG_D("path=%s\n", path);
@@ -1622,9 +1620,8 @@ tbm_bufmgr_debug_dump_all(char *path)
 
 	tbm_surface_internal_dump_start(path, w, h, count);
 
-	LIST_FOR_EACH_ENTRY_SAFE(surface, tmp, &gBufMgr->surf_list, item_link) {
+	LIST_FOR_EACH_ENTRY(surface, &gBufMgr->surf_list, item_link)
 		tbm_surface_internal_dump_buffer(surface, "dump_all");
-	}
 
 	tbm_surface_internal_dump_end();
 
