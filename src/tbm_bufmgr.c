@@ -477,101 +477,94 @@ _check_version(TBMModuleVersionInfo *data)
 static int
 _tbm_bufmgr_load_module(tbm_bufmgr bufmgr, int fd, const char *file)
 {
-	char path[PATH_MAX] = { 0, };
-	TBMModuleData *initdata = NULL;
+	char path[PATH_MAX] = {0, };
+	TBMModuleVersionInfo *vers;
+	TBMModuleData *initdata;
+	ModuleInitProc init;
 	void *module_data;
 
 	snprintf(path, sizeof(path), BUFMGR_MODULE_DIR "/%s", file);
 
 	module_data = dlopen(path, RTLD_LAZY);
 	if (!module_data) {
-		TBM_LOG_E("failed to load module: %s(%s)\n",
-			dlerror(), file);
+		TBM_LOG_E("failed to load module: %s(%s)\n", dlerror(), file);
 		return 0;
 	}
 
 	initdata = dlsym(module_data, "tbmModuleData");
-	if (initdata) {
-		ModuleInitProc init;
-		TBMModuleVersionInfo *vers;
-
-		vers = initdata->vers;
-		init = initdata->init;
-
-		if (vers) {
-			if (!_check_version(vers)) {
-				dlclose(module_data);
-				return 0;
-			}
-		} else {
-			TBM_LOG_E("Error: module does not supply version information.\n");
-
-			dlclose(module_data);
-			return 0;
-		}
-
-		if (init) {
-			if (!init(bufmgr, fd)) {
-				TBM_LOG_E("Fail to init module(%s)\n",
-					file);
-				dlclose(module_data);
-				return 0;
-			}
-
-			if (!bufmgr->backend || !bufmgr->backend->priv) {
-				TBM_LOG_E("Error: module(%s) wrong operation. Check backend or backend's priv.\n",
-					file);
-				dlclose(module_data);
-				return 0;
-			}
-		} else {
-			TBM_LOG_E("Error: module does not supply init symbol.\n");
-			dlclose(module_data);
-			return 0;
-		}
-	} else {
+	if (!initdata) {
 		TBM_LOG_E("Error: module does not have data object.\n");
-		dlclose(module_data);
-		return 0;
+		goto err;
+	}
+
+	vers = initdata->vers;
+	if (!vers) {
+		TBM_LOG_E("Error: module does not supply version information.\n");
+		goto err;
+	}
+
+	init = initdata->init;
+	if (!init) {
+		TBM_LOG_E("Error: module does not supply init symbol.\n");
+		goto err;
+	}
+
+	if (!_check_version(vers)) {
+		TBM_LOG_E("Fail to check version.\n");
+		goto err;
+	}
+
+	if (!init(bufmgr, fd)) {
+		TBM_LOG_E("Fail to init module(%s)\n", file);
+		goto err;
+	}
+
+	if (!bufmgr->backend || !bufmgr->backend->priv) {
+		TBM_LOG_E("Error: module(%s) wrong operation. Check backend or backend's priv.\n", file);
+		goto err;
 	}
 
 	bufmgr->module_data = module_data;
 
-	TBM_DBG("Success to load module(%s)\n",
-	    file);
+	TBM_DBG("Success to load module(%s)\n", file);
 
 	return 1;
+
+err:
+	dlclose(module_data);
+	return 0;
 }
 
 static int
 _tbm_load_module(tbm_bufmgr bufmgr, int fd)
 {
 	struct dirent **namelist;
-	const char *p = NULL;
-	int n;
-	int ret = 0;
+	int ret = 0, n;
 
 	/* load bufmgr priv from default lib */
-	ret = _tbm_bufmgr_load_module(bufmgr, fd, DEFAULT_LIB);
+	if (_tbm_bufmgr_load_module(bufmgr, fd, DEFAULT_LIB))
+		return 1;
 
 	/* load bufmgr priv from configured path */
-	if (!ret) {
-		n = scandir(BUFMGR_MODULE_DIR, &namelist, 0, alphasort);
-		if (n < 0) {
-			TBM_LOG_E("no files : %s\n",
-				BUFMGR_MODULE_DIR);
-		} else {
-			while (n--) {
-				if (!ret && strstr(namelist[n]->d_name, PREFIX_LIB)) {
-					p = strstr(namelist[n]->d_name, SUFFIX_LIB);
-					if (p && !strcmp(p, SUFFIX_LIB))
-						ret = _tbm_bufmgr_load_module(bufmgr, fd, namelist[n]->d_name);
-				}
-				free(namelist[n]);
-			}
-			free(namelist);
-		}
+	n = scandir(BUFMGR_MODULE_DIR, &namelist, 0, alphasort);
+	if (n < 0) {
+		TBM_LOG_E("no files : %s\n", BUFMGR_MODULE_DIR);
+		return 0;
 	}
+
+	while (n--) {
+		if (!ret && strstr(namelist[n]->d_name, PREFIX_LIB)) {
+			const char *p = strstr(namelist[n]->d_name, SUFFIX_LIB);
+
+			if (p && !strcmp(p, SUFFIX_LIB))
+				ret = _tbm_bufmgr_load_module(bufmgr, fd,
+							namelist[n]->d_name);
+		}
+
+		free(namelist[n]);
+	}
+
+	free(namelist);
 
 	return ret;
 }
