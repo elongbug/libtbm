@@ -757,15 +757,13 @@ tbm_bufmgr_deinit(tbm_bufmgr bufmgr)
 int
 tbm_bo_size(tbm_bo bo)
 {
-	tbm_bufmgr bufmgr = NULL;
+	tbm_bufmgr bufmgr = gBufMgr;
 	int size;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), 0);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), 0);
-
-	bufmgr = gBufMgr;
 
 	size = bufmgr->backend->bo_size(bo);
 
@@ -796,15 +794,12 @@ tbm_bo_ref(tbm_bo bo)
 void
 tbm_bo_unref(tbm_bo bo)
 {
-	tbm_bufmgr bufmgr = NULL;
-	tbm_user_data *old_data = NULL, *tmp = NULL;
+	tbm_bufmgr bufmgr = gBufMgr;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_IF_FAIL(gBufMgr);
 	TBM_BUFMGR_RETURN_IF_FAIL(_tbm_bo_is_valid(bo));
-
-	bufmgr = gBufMgr;
 
 	TBM_TRACE("bo(%p) ref_cnt(%d)\n", bo, bo->ref_cnt - 1);
 
@@ -817,15 +812,17 @@ tbm_bo_unref(tbm_bo bo)
 	if (bo->ref_cnt == 0) {
 		/* destory the user_data_list */
 		if (!LIST_IS_EMPTY(&bo->user_data_list)) {
-			LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &bo->user_data_list, item_link) {
+			tbm_user_data *old_data = NULL, *tmp;
+
+			LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp,
+					&bo->user_data_list, item_link) {
 				TBM_DBG("free user_data\n");
 				user_data_delete(old_data);
 			}
 		}
 
 		while (bo->lock_cnt > 0) {
-			TBM_LOG_E("error lock_cnt:%d\n",
-				bo->lock_cnt);
+			TBM_LOG_E("error lock_cnt:%d\n", bo->lock_cnt);
 			_bo_unlock(bo);
 			bo->lock_cnt--;
 		}
@@ -846,8 +843,8 @@ tbm_bo_unref(tbm_bo bo)
 tbm_bo
 tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 {
-	tbm_bo bo = NULL;
-	void *bo_priv = NULL;
+	void *bo_priv;
+	tbm_bo bo;
 
 	_tbm_bufmgr_mutex_lock();
 
@@ -865,7 +862,6 @@ tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 	}
 
 	_tbm_util_check_bo_cnt(bufmgr);
-	bufmgr->bo_cnt++;
 
 	bo->bufmgr = bufmgr;
 
@@ -878,6 +874,8 @@ tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 		_tbm_bufmgr_mutex_unlock();
 		return NULL;
 	}
+
+	bufmgr->bo_cnt++;
 
 	bo->ref_cnt = 1;
 	bo->flags = flags;
@@ -898,10 +896,8 @@ tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 tbm_bo
 tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 {
-	tbm_bo bo = NULL;
-	tbm_bo bo2 = NULL;
-	tbm_bo tmp = NULL;
-	void *bo_priv = NULL;
+	void *bo_priv;
+	tbm_bo bo;
 
 	_tbm_bufmgr_mutex_lock();
 
@@ -934,7 +930,9 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 	}
 
 	if (!LIST_IS_EMPTY(&bufmgr->bo_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(bo2, tmp, &bufmgr->bo_list, item_link) {
+		tbm_bo bo2 = NULL;
+
+		LIST_FOR_EACH_ENTRY(bo2, &bufmgr->bo_list, item_link) {
 			if (bo2->priv == bo_priv) {
 				TBM_TRACE("find bo(%p) ref(%d) key(%d) flag(%s) in list\n",
 						bo2, bo2->ref_cnt, key,
@@ -972,10 +970,8 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 tbm_bo
 tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 {
-	tbm_bo bo = NULL;
-	tbm_bo bo2 = NULL;
-	tbm_bo tmp = NULL;
-	void *bo_priv = NULL;
+	void *bo_priv;
+	tbm_bo bo;
 
 	_tbm_bufmgr_mutex_lock();
 
@@ -1008,7 +1004,9 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 	}
 
 	if (!LIST_IS_EMPTY(&bufmgr->bo_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(bo2, tmp, &bufmgr->bo_list, item_link) {
+		tbm_bo bo2 = NULL;
+
+		LIST_FOR_EACH_ENTRY(bo2, &bufmgr->bo_list, item_link) {
 			if (bo2->priv == bo_priv) {
 				TBM_TRACE("find bo(%p) ref(%d) fd(%d) flag(%s) in list\n",
 						bo2, bo2->ref_cnt, fd,
@@ -1046,15 +1044,13 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 tbm_key
 tbm_bo_export(tbm_bo bo)
 {
-	tbm_bufmgr bufmgr = NULL;
+	tbm_bufmgr bufmgr = gBufMgr;
 	tbm_key ret;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), 0);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), 0);
-
-	bufmgr = gBufMgr;
 
 	if (!bufmgr->backend->bo_export) {
 		_tbm_bufmgr_mutex_unlock();
@@ -1069,7 +1065,7 @@ tbm_bo_export(tbm_bo bo)
 		return ret;
 	}
 
-	TBM_TRACE("bo(%p) tbm_key(%d)\n", bo, ret);
+	TBM_TRACE("bo(%p) tbm_key(%u)\n", bo, ret);
 
 	_tbm_bufmgr_mutex_unlock();
 
@@ -1079,15 +1075,13 @@ tbm_bo_export(tbm_bo bo)
 tbm_fd
 tbm_bo_export_fd(tbm_bo bo)
 {
-	tbm_bufmgr bufmgr = NULL;
-	int ret;
+	tbm_bufmgr bufmgr = gBufMgr;
+	tbm_fd ret;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), -1);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), -1);
-
-	bufmgr = gBufMgr;
 
 	if (!bufmgr->backend->bo_export_fd) {
 		_tbm_bufmgr_mutex_unlock();
@@ -1112,15 +1106,13 @@ tbm_bo_export_fd(tbm_bo bo)
 tbm_bo_handle
 tbm_bo_get_handle(tbm_bo bo, int device)
 {
-	tbm_bufmgr bufmgr = NULL;
+	tbm_bufmgr bufmgr = gBufMgr;
 	tbm_bo_handle bo_handle;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), (tbm_bo_handle) NULL);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), (tbm_bo_handle) NULL);
-
-	bufmgr = gBufMgr;
 
 	bo_handle = bufmgr->backend->bo_get_handle(bo, device);
 	if (bo_handle.ptr == NULL) {
@@ -1140,15 +1132,13 @@ tbm_bo_get_handle(tbm_bo bo, int device)
 tbm_bo_handle
 tbm_bo_map(tbm_bo bo, int device, int opt)
 {
-	tbm_bufmgr bufmgr = NULL;
+	tbm_bufmgr bufmgr = gBufMgr;
 	tbm_bo_handle bo_handle;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), (tbm_bo_handle) NULL);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), (tbm_bo_handle) NULL);
-
-	bufmgr = gBufMgr;
 
 	if (!_tbm_bo_lock(bo, device, opt)) {
 		_tbm_set_last_result(TBM_BO_ERROR_LOCK_FAILED);
@@ -1179,15 +1169,13 @@ tbm_bo_map(tbm_bo bo, int device, int opt)
 int
 tbm_bo_unmap(tbm_bo bo)
 {
-	tbm_bufmgr bufmgr = NULL;
+	tbm_bufmgr bufmgr = gBufMgr;
 	int ret;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), 0);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), 0);
-
-	bufmgr = gBufMgr;
 
 	ret = bufmgr->backend->bo_unmap(bo);
 	if (!ret) {
@@ -1212,7 +1200,7 @@ tbm_bo_unmap(tbm_bo bo)
 int
 tbm_bo_swap(tbm_bo bo1, tbm_bo bo2)
 {
-	tbm_bufmgr bufmgr = NULL;
+	tbm_bufmgr bufmgr = gBufMgr;
 	void *temp;
 
 	_tbm_bufmgr_mutex_lock();
@@ -1220,8 +1208,6 @@ tbm_bo_swap(tbm_bo bo1, tbm_bo bo2)
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), 0);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo1), 0);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo2), 0);
-
-	bufmgr = gBufMgr;
 
 	TBM_TRACE("before: bo1(%p) bo2(%p)\n", bo1, bo2);
 
@@ -1246,14 +1232,12 @@ tbm_bo_swap(tbm_bo bo1, tbm_bo bo2)
 int
 tbm_bo_locked(tbm_bo bo)
 {
-	tbm_bufmgr bufmgr = NULL;
+	tbm_bufmgr bufmgr = gBufMgr;
 
 	_tbm_bufmgr_mutex_lock();
 
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(TBM_BUFMGR_IS_VALID(gBufMgr), 0);
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), 0);
-
-	bufmgr = gBufMgr;
 
 	if (bufmgr->lock_type == LOCK_TRY_NEVER) {
 		TBM_TRACE("bo(%p) lock_cnt(%d)\n", bo, bo->lock_cnt);
@@ -1333,7 +1317,6 @@ tbm_bo_set_user_data(tbm_bo bo, unsigned long key, void *data)
 
 	if (old_data->data && old_data->free_func)
 		old_data->free_func(old_data->data);
-
 	old_data->data = data;
 
 	TBM_TRACE("bo(%p) key(%lu) data(%p)\n", bo, key, old_data->data);
@@ -1379,7 +1362,7 @@ tbm_bo_get_user_data(tbm_bo bo, unsigned long key, void **data)
 int
 tbm_bo_delete_user_data(tbm_bo bo, unsigned long key)
 {
-	tbm_user_data *old_data = (void *)0;
+	tbm_user_data *old_data;
 
 	_tbm_bufmgr_mutex_lock();
 
