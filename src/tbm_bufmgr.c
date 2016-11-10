@@ -573,13 +573,10 @@ _tbm_load_module(tbm_bufmgr bufmgr, int fd)
 tbm_bufmgr
 tbm_bufmgr_init(int fd)
 {
-	char *env;
-
 #ifdef TBM_BUFMGR_INIT_TIME
 	struct timeval start_tv, end_tv;
 #endif
-
-	pthread_mutex_lock(&gLock);
+	char *env;
 
 #ifdef TBM_BUFMGR_INIT_TIME
 	/* get the start tv */
@@ -592,9 +589,8 @@ tbm_bufmgr_init(int fd)
 	if (env) {
 		bDlog = atoi(env);
 		TBM_LOG_D("TBM_DLOG=%s\n", env);
-	} else {
+	} else
 		bDlog = 1;
-	}
 #endif
 
 #ifdef DEBUG
@@ -602,9 +598,8 @@ tbm_bufmgr_init(int fd)
 	if (env) {
 		bDebug = atoi(env);
 		TBM_LOG_D("TBM_DEBUG=%s\n", env);
-	} else {
+	} else
 		bDebug = 0;
-	}
 #endif
 
 #ifdef TRACE
@@ -612,11 +607,12 @@ tbm_bufmgr_init(int fd)
 	if (env) {
 		bTrace = atoi(env);
 		TBM_LOG_D("TBM_TRACE=%s\n", env);
-	} else {
+	} else
 		bTrace = 0;
-	}
 #endif
 	/* LCOV_EXCL_STOP */
+
+	pthread_mutex_lock(&gLock);
 
 	/* initialize buffer manager */
 	if (gBufMgr) {
@@ -671,8 +667,7 @@ tbm_bufmgr_init(int fd)
 	else
 		gBufMgr->lock_type = LOCK_TRY_ALWAYS;
 
-	TBM_DBG("BUFMGR_LOCK_TYPE=%s\n",
-	    env ? env : "default:once");
+	TBM_DBG("BUFMGR_LOCK_TYPE=%s\n", env ? env : "default:once");
 
 	TBM_TRACE("create tbm_bufmgr(%p) ref_count(%d) fd(%d)\n", gBufMgr, gBufMgr->ref_count, fd);
 
@@ -682,7 +677,7 @@ tbm_bufmgr_init(int fd)
 	/* intialize surf_list */
 	LIST_INITHEAD(&gBufMgr->surf_list);
 
-	/* intialize surf_list */
+	/* intialize surf_queue_list */
 	LIST_INITHEAD(&gBufMgr->surf_queue_list);
 
 	/* intialize debug_key_list */
@@ -704,12 +699,6 @@ tbm_bufmgr_deinit(tbm_bufmgr bufmgr)
 {
 	TBM_RETURN_IF_FAIL(TBM_BUFMGR_IS_VALID(bufmgr));
 
-	tbm_bo bo = NULL;
-	tbm_bo tmp = NULL;
-
-	tbm_surface_h surf = NULL;
-	tbm_surface_h tmp_surf = NULL;
-
 	pthread_mutex_lock(&gLock);
 
 	if (!gBufMgr) {
@@ -727,9 +716,10 @@ tbm_bufmgr_deinit(tbm_bufmgr bufmgr)
 
 	/* destroy bo_list */
 	if (!LIST_IS_EMPTY(&bufmgr->bo_list)) {
+		tbm_bo bo = NULL, tmp;
+
 		LIST_FOR_EACH_ENTRY_SAFE(bo, tmp, &bufmgr->bo_list, item_link) {
-			TBM_LOG_E("Un-freed bo(%p, ref:%d)\n",
-				bo, bo->ref_cnt);
+			TBM_LOG_E("Un-freed bo(%p, ref:%d)\n", bo, bo->ref_cnt);
 			bo->ref_cnt = 1;
 			tbm_bo_unref(bo);
 		}
@@ -737,9 +727,10 @@ tbm_bufmgr_deinit(tbm_bufmgr bufmgr)
 
 	/* destroy surf_list */
 	if (!LIST_IS_EMPTY(&bufmgr->surf_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(surf, tmp_surf, &bufmgr->surf_list, item_link) {
-			TBM_LOG_E("Un-freed surf(%p, ref:%d)\n",
-				surf, surf->refcnt);
+		tbm_surface_h surf = NULL, tmp;
+
+		LIST_FOR_EACH_ENTRY_SAFE(surf, tmp, &bufmgr->surf_list, item_link) {
+			TBM_LOG_E("Un-freed surf(%p, ref:%d)\n", surf, surf->refcnt);
 			tbm_surface_destroy(surf);
 		}
 	}
@@ -758,7 +749,6 @@ tbm_bufmgr_deinit(tbm_bufmgr bufmgr)
 		close(bufmgr->fd);
 
 	free(bufmgr);
-	bufmgr = NULL;
 	gBufMgr = NULL;
 
 	pthread_mutex_unlock(&gLock);
