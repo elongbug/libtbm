@@ -137,57 +137,72 @@ _tbm_bufmgr_mutex_unlock(void)
 	pthread_mutex_unlock(&tbm_bufmgr_lock);
 }
 
-char * tbm_flag_to_str(int f)
+static char *
+_tbm_flag_to_str(int f)
 {
 	static char str[255];
-	int c = 0;
+
 	if (f == TBM_BO_DEFAULT)
-		 snprintf(str, 255, "DEFAULT\n");
+		 snprintf(str, 255, "DEFAULT");
 	else {
+		int c = 0;
+
 		if (f & TBM_BO_SCANOUT)
-			c = snprintf(&str[c], 255, "SCANOUT,");
-		if (f & TBM_BO_NONCACHABLE)
+			c = snprintf(&str[c], 255, "SCANOUT");
+
+		if (f & TBM_BO_NONCACHABLE) {
+			if (c)
+				c = snprintf(&str[c], 255, ", ");
 			c = snprintf(&str[c], 255, "NONCACHABLE,");
-		if (f & TBM_BO_WC)
+		}
+
+		if (f & TBM_BO_WC) {
+			if (c)
+				c = snprintf(&str[c], 255, ", ");
 			c = snprintf(&str[c], 255, "WC");
+		}
 	}
+
 	return str;
 }
 
 /* LCOV_EXCL_START */
-static int last_chk_bo_cnt = 0;
 static void
 _tbm_util_check_bo_cnt(tbm_bufmgr bufmgr)
 {
-	if (bufmgr->bo_cnt >= 500 && ((bufmgr->bo_cnt % 20) == 0)) {
-		if (bufmgr->bo_cnt > last_chk_bo_cnt) {
-			TBM_DEBUG("============TBM BO CNT DEBUG: bo_cnt=%d\n", bufmgr->bo_cnt);
-			tbm_bufmgr_debug_show(bufmgr);
-			last_chk_bo_cnt = bufmgr->bo_cnt;
-		}
+	static int last_chk_bo_cnt = 0;
+
+	if ((bufmgr->bo_cnt >= 500) && ((bufmgr->bo_cnt % 20) == 0) &&
+		(bufmgr->bo_cnt > last_chk_bo_cnt)) {
+		TBM_DEBUG("============TBM BO CNT DEBUG: bo_cnt=%d\n",
+				bufmgr->bo_cnt);
+
+		tbm_bufmgr_debug_show(bufmgr);
+
+		last_chk_bo_cnt = bufmgr->bo_cnt;
 	}
 }
 
 static int
-_tbm_util_get_max_surface_size(int * w, int * h)
+_tbm_util_get_max_surface_size(int *w, int *h)
 {
-	int count = 0;
-	tbm_surface_h surface = NULL, tmp = NULL;
 	tbm_surface_info_s info;
+	tbm_surface_h surface = NULL;
+	int count = 0;
 
 	*w = 0;
 	*h = 0;
 
-	if (gBufMgr == NULL)
+	if (gBufMgr == NULL || !LIST_IS_EMPTY(&gBufMgr->surf_list))
 		return count;
 
-	if (!LIST_IS_EMPTY(&gBufMgr->surf_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(surface, tmp, &gBufMgr->surf_list, item_link) {
-			if (tbm_surface_get_info(surface, &info) == TBM_SURFACE_ERROR_NONE) {
-				count++;
-				if (*w < info.width) *w = info.width;
-				if (*h < info.height) *h = info.height;
-			}
+	LIST_FOR_EACH_ENTRY(surface, &gBufMgr->surf_list, item_link) {
+		if (tbm_surface_get_info(surface, &info) == TBM_SURFACE_ERROR_NONE) {
+			count++;
+			if (*w < info.width)
+				*w = info.width;
+			if (*h < info.height)
+				*h = info.height;
 		}
 	}
 
@@ -216,25 +231,24 @@ _tbm_util_get_appname_brief(char *brief)
 static void
 _tbm_util_get_appname_from_pid(long pid, char *str)
 {
+	char fn_cmdline[255] = {0, }, cmdline[255];
 	FILE *fp;
 	int len;
-	long app_pid = pid;
-	char fn_cmdline[255] = {0,};
-	char cmdline[255] = {0,};
 
-	snprintf(fn_cmdline, sizeof(fn_cmdline), "/proc/%ld/cmdline", app_pid);
+	snprintf(fn_cmdline, sizeof(fn_cmdline), "/proc/%ld/cmdline", pid);
 
 	fp = fopen(fn_cmdline, "r");
 	if (fp == 0) {
-		fprintf(stderr, "cannot file open /proc/%ld/cmdline", app_pid);
+		fprintf(stderr, "cannot file open %s\n", fn_cmdline);
 		return;
 	}
 
 	if (!fgets(cmdline, 255, fp)) {
-		fprintf(stderr, "fail to get appname for pid(%ld)\n", app_pid);
+		fprintf(stderr, "fail to get appname for pid(%ld)\n", pid);
 		fclose(fp);
 		return;
 	}
+
 	fclose(fp);
 
 	len = strlen(cmdline);
@@ -250,25 +264,23 @@ _tbm_util_get_appname_from_pid(long pid, char *str)
 tbm_user_data
 *user_data_lookup(struct list_head *user_data_list, unsigned long key)
 {
-	tbm_user_data *user_data = NULL;
 	tbm_user_data *old_data = NULL;
 
-	if (!LIST_IS_EMPTY(user_data_list)) {
-		LIST_FOR_EACH_ENTRY(old_data, user_data_list, item_link) {
-			if (old_data->key == key) {
-				user_data = old_data;
-				return user_data;
-			}
-		}
+	if (LIST_IS_EMPTY(user_data_list))
+		return NULL;
+
+	LIST_FOR_EACH_ENTRY(old_data, user_data_list, item_link) {
+		if (old_data->key == key)
+			return old_data;
 	}
 
-	return user_data;
+	return NULL;
 }
 
 tbm_user_data
 *user_data_create(unsigned long key, tbm_data_free data_free_func)
 {
-	tbm_user_data *user_data = NULL;
+	tbm_user_data *user_data;
 
 	user_data = calloc(1, sizeof(tbm_user_data));
 	if (!user_data)
@@ -276,7 +288,6 @@ tbm_user_data
 
 	user_data->key = key;
 	user_data->free_func = data_free_func;
-	user_data->data = (void *)0;
 
 	return user_data;
 }
@@ -296,12 +307,10 @@ static int
 _bo_lock(tbm_bo bo, int device, int opt)
 {
 	tbm_bufmgr bufmgr = bo->bufmgr;
-	int ret = 0;
+	int ret = 1;
 
 	if (bufmgr->backend->bo_lock)
 		ret = bufmgr->backend->bo_lock(bo, device, opt);
-	else
-		ret = 1;
 
 	return ret;
 }
@@ -318,9 +327,8 @@ _bo_unlock(tbm_bo bo)
 static int
 _tbm_bo_lock(tbm_bo bo, int device, int opt)
 {
-	tbm_bufmgr bufmgr = NULL;
-	int old;
-	int ret = 0;
+	tbm_bufmgr bufmgr;
+	int old, ret;
 
 	if (!bo)
 		return 0;
@@ -334,10 +342,13 @@ _tbm_bo_lock(tbm_bo bo, int device, int opt)
 	if (bo->lock_cnt < 0) {
 		TBM_LOG_E("error bo:%p LOCK_CNT=%d\n",
 			bo, bo->lock_cnt);
+		return 0;
 	}
 
 	old = bo->lock_cnt;
-	if (bufmgr->lock_type == LOCK_TRY_ONCE) {
+
+	switch (bufmgr->lock_type) {
+	case LOCK_TRY_ONCE:
 		if (bo->lock_cnt == 0) {
 			_tbm_bufmgr_mutex_unlock();
 			ret = _bo_lock(bo, device, opt);
@@ -346,19 +357,22 @@ _tbm_bo_lock(tbm_bo bo, int device, int opt)
 				bo->lock_cnt++;
 		} else
 			ret = 1;
-	} else if (bufmgr->lock_type == LOCK_TRY_ALWAYS) {
+		break;
+	case LOCK_TRY_ALWAYS:
 		_tbm_bufmgr_mutex_unlock();
 		ret = _bo_lock(bo, device, opt);
 		_tbm_bufmgr_mutex_lock();
 		if (ret)
 			bo->lock_cnt++;
-	} else {
-		TBM_LOG_E("error bo:%p lock_type is wrong.\n",
-			bo);
+		break;
+	default:
+		TBM_LOG_E("error bo:%p lock_type[%d] is wrong.\n",
+				bo, bufmgr->lock_type);
+		ret = 0;
+		break;
 	}
 
-	TBM_DBG_LOCK(">> LOCK bo:%p(%d->%d)\n",
-		 bo, old, bo->lock_cnt);
+	TBM_DBG_LOCK(">> LOCK bo:%p(%d->%d)\n", bo, old, bo->lock_cnt);
 
 	return ret;
 }
@@ -366,8 +380,7 @@ _tbm_bo_lock(tbm_bo bo, int device, int opt)
 static void
 _tbm_bo_unlock(tbm_bo bo)
 {
-	tbm_bufmgr bufmgr = NULL;
-
+	tbm_bufmgr bufmgr;
 	int old;
 
 	if (!bo)
@@ -380,49 +393,51 @@ _tbm_bo_unlock(tbm_bo bo)
 		return;
 
 	old = bo->lock_cnt;
-	if (bufmgr->lock_type == LOCK_TRY_ONCE) {
+
+	switch (bufmgr->lock_type) {
+	case LOCK_TRY_ONCE:
 		if (bo->lock_cnt > 0) {
 			bo->lock_cnt--;
 			if (bo->lock_cnt == 0)
 				_bo_unlock(bo);
 		}
-	} else if (bufmgr->lock_type == LOCK_TRY_ALWAYS) {
+		break;
+	case LOCK_TRY_ALWAYS:
 		if (bo->lock_cnt > 0) {
 			bo->lock_cnt--;
 			_bo_unlock(bo);
 		}
-	} else {
-		TBM_LOG_E("error bo:%p lock_type is wrong.\n",
-			bo);
+		break;
+	default:
+		TBM_LOG_E("error bo:%p lock_type[%d] is wrong.\n",
+				bo, bufmgr->lock_type);
+		break;
 	}
 
 	if (bo->lock_cnt < 0)
 		bo->lock_cnt = 0;
 
-	TBM_DBG_LOCK(">> UNLOCK bo:%p(%d->%d)\n",
-		 bo, old, bo->lock_cnt);
+	TBM_DBG_LOCK(">> UNLOCK bo:%p(%d->%d)\n", bo, old, bo->lock_cnt);
 }
 
 static int
 _tbm_bo_is_valid(tbm_bo bo)
 {
-	tbm_bo old_data = NULL, tmp = NULL;
+	tbm_bo old_data;
 
-	if (bo == NULL)
-		return 0;
-
-	if (gBufMgr == NULL) {
-		TBM_LOG_E("error tbm_bufmgr was deinited\n");
+	if (bo == NULL || gBufMgr == NULL) {
+		TBM_LOG_E("error: bo is NULL or tbm_bufmgr was deinited\n");
 		return 0;
 	}
 
-	if (!LIST_IS_EMPTY(&gBufMgr->bo_list)) {
-		LIST_FOR_EACH_ENTRY_SAFE(old_data, tmp, &gBufMgr->bo_list, item_link) {
-			if (old_data == bo)
-				return 1;
-		}
+	if (LIST_IS_EMPTY(&gBufMgr->bo_list))
+		return 0;
 
+	LIST_FOR_EACH_ENTRY(old_data, &gBufMgr->bo_list, item_link) {
+		if (old_data == bo)
+			return 1;
 	}
+
 	return 0;
 }
 
@@ -455,6 +470,7 @@ _check_version(TBMModuleVersionInfo *data)
 			abimin, vermin);
 		return 0;
 	}
+
 	return 1;
 }
 
@@ -858,7 +874,8 @@ tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 
 	bo = calloc(1, sizeof(struct _tbm_bo));
 	if (!bo) {
-		TBM_TRACE("error: fail to create of tbm_bo size(%d) flag(%s)\n", size, tbm_flag_to_str(flags));
+		TBM_TRACE("error: fail to create of tbm_bo size(%d) flag(%s)\n",
+				size, _tbm_flag_to_str(flags));
 		_tbm_set_last_result(TBM_BO_ERROR_HEAP_ALLOC_FAILED);
 		_tbm_bufmgr_mutex_unlock();
 		return NULL;
@@ -871,7 +888,8 @@ tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 
 	bo_priv = bufmgr->backend->bo_alloc(bo, size, flags);
 	if (!bo_priv) {
-		TBM_TRACE("error: fail to create of tbm_bo size(%d) flag(%s)\n", size, tbm_flag_to_str(flags));
+		TBM_TRACE("error: fail to create of tbm_bo size(%d) flag(%s)\n",
+				size, _tbm_flag_to_str(flags));
 		_tbm_set_last_result(TBM_BO_ERROR_BO_ALLOC_FAILED);
 		free(bo);
 		_tbm_bufmgr_mutex_unlock();
@@ -882,7 +900,8 @@ tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 	bo->flags = flags;
 	bo->priv = bo_priv;
 
-	TBM_TRACE("bo(%p) size(%d) refcnt(%d), flag(%s)\n", bo, size, bo->ref_cnt, tbm_flag_to_str(bo->flags));
+	TBM_TRACE("bo(%p) size(%d) refcnt(%d), flag(%s)\n", bo, size, bo->ref_cnt,
+			_tbm_flag_to_str(bo->flags));
 
 	LIST_INITHEAD(&bo->user_data_list);
 
@@ -935,7 +954,8 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 		LIST_FOR_EACH_ENTRY_SAFE(bo2, tmp, &bufmgr->bo_list, item_link) {
 			if (bo2->priv == bo_priv) {
 				TBM_TRACE("find bo(%p) ref(%d) key(%d) flag(%s) in list\n",
-							bo2, bo2->ref_cnt, key, tbm_flag_to_str(bo2->flags));
+						bo2, bo2->ref_cnt, key,
+						_tbm_flag_to_str(bo2->flags));
 				bo2->ref_cnt++;
 				free(bo);
 				_tbm_bufmgr_mutex_unlock();
@@ -955,7 +975,7 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 		bo->flags = TBM_BO_DEFAULT;
 
 	TBM_TRACE("import new bo(%p) ref(%d) key(%d) flag(%s) in list\n",
-			  bo, bo->ref_cnt, key, tbm_flag_to_str(bo->flags));
+			  bo, bo->ref_cnt, key, _tbm_flag_to_str(bo->flags));
 
 	LIST_INITHEAD(&bo->user_data_list);
 
@@ -1008,7 +1028,8 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 		LIST_FOR_EACH_ENTRY_SAFE(bo2, tmp, &bufmgr->bo_list, item_link) {
 			if (bo2->priv == bo_priv) {
 				TBM_TRACE("find bo(%p) ref(%d) fd(%d) flag(%s) in list\n",
-							bo2, bo2->ref_cnt, fd, tbm_flag_to_str(bo2->flags));
+						bo2, bo2->ref_cnt, fd,
+						_tbm_flag_to_str(bo2->flags));
 				bo2->ref_cnt++;
 				free(bo);
 				_tbm_bufmgr_mutex_unlock();
@@ -1028,7 +1049,7 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 		bo->flags = TBM_BO_DEFAULT;
 
 	TBM_TRACE("import bo(%p) ref(%d) fd(%d) flag(%s)in list\n",
-				bo, bo->ref_cnt, fd, tbm_flag_to_str(bo->flags));
+			bo, bo->ref_cnt, fd, _tbm_flag_to_str(bo->flags));
 
 	LIST_INITHEAD(&bo->user_data_list);
 
