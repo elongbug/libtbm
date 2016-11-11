@@ -423,7 +423,7 @@ _tbm_bo_unlock(tbm_bo bo)
 static int
 _tbm_bo_is_valid(tbm_bo bo)
 {
-	tbm_bo old_data;
+	tbm_bo old_data = NULL;
 
 	if (bo == NULL || gBufMgr == NULL) {
 		TBM_LOG_E("error: bo is NULL or tbm_bufmgr was deinited\n");
