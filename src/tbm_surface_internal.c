@@ -724,7 +724,7 @@ query_plane_data_fail:
 	free(surf);
 alloc_surf_fail:
 check_valid_fail:
-	if (bufmgr_initialized) {
+	if (bufmgr_initialized && mgr) {
 		LIST_DELINIT(&mgr->surf_list);
 		_deinit_surface_bufmgr();
 	}
@@ -828,8 +828,8 @@ check_bo_fail:
 	free(surf);
 alloc_surf_fail:
 check_valid_fail:
-	if (bufmgr_initialized) {
-		LIST_DELINIT(&g_surface_bufmgr->surf_list);
+	if (bufmgr_initialized && mgr) {
+		LIST_DELINIT(&mgr->surf_list);
 		_deinit_surface_bufmgr();
 	}
 	_tbm_surface_mutex_unlock();
