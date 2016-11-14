@@ -1441,9 +1441,11 @@ __tbm_queue_default_need_attach(tbm_surface_queue_h surface_queue)
 		return;
 
 	if (surface_queue->alloc_cb) {
+		pthread_mutex_unlock(&surface_queue->lock);
 		_tbm_surf_queue_mutex_unlock();
 		surface = surface_queue->alloc_cb(surface_queue, surface_queue->alloc_cb_data);
 		_tbm_surf_queue_mutex_lock();
+		pthread_mutex_lock(&surface_queue->lock);
 
 		if (!surface)
 			return;
@@ -1546,9 +1548,11 @@ __tbm_queue_sequence_need_attach(tbm_surface_queue_h surface_queue)
 		return;
 
 	if (surface_queue->alloc_cb) {
+		pthread_mutex_unlock(&surface_queue->lock);
 		_tbm_surf_queue_mutex_unlock();
 		surface = surface_queue->alloc_cb(surface_queue, surface_queue->alloc_cb_data);
 		_tbm_surf_queue_mutex_lock();
+		pthread_mutex_lock(&surface_queue->lock);
 
 		if (!surface)
 			return;
