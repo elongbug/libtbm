@@ -414,9 +414,14 @@ static void
 _notify_emit(tbm_surface_queue_h surface_queue,
 	     struct list_head *list)
 {
-	queue_notify *item = NULL;
+	queue_notify *item = NULL, *tmp;;
 
-	LIST_FOR_EACH_ENTRY(item, list, link)
+	/*
+		The item->cb is the outside function of the libtbm.
+		The tbm user may/can remove the item of the list,
+		so we have to use the LIST_FOR_EACH_ENTRY_SAFE.
+	*/
+	LIST_FOR_EACH_ENTRY_SAFE(item, tmp, list, link)
 		item->cb(surface_queue, item->data);
 }
 
