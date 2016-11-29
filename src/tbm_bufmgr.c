@@ -193,7 +193,7 @@ _tbm_util_get_max_surface_size(int *w, int *h)
 	*w = 0;
 	*h = 0;
 
-	if (gBufMgr == NULL || !LIST_IS_EMPTY(&gBufMgr->surf_list))
+	if (gBufMgr == NULL || LIST_IS_EMPTY(&gBufMgr->surf_list))
 		return count;
 
 	LIST_FOR_EACH_ENTRY(surface, &gBufMgr->surf_list, item_link) {
