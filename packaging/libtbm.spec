@@ -3,7 +3,7 @@
 %bcond_with utest
 
 Name:           libtbm
-Version:        2.0.9
+Version:        2.0.10
 Release:        1
 License:        MIT
 Summary:        The library for Tizen Buffer Manager
