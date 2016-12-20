@@ -440,9 +440,9 @@ void tbm_surface_internal_dump_end(void);
  * The filename extension should be "png" for TBM_FORMAT_ARGB8888 and TBM_FORMAT_XRGB8888
  * or "yuv" for YUV formats.
  * @param[in] surface : a tbm surface
- * @param[in] type : a string used by a file name
+ * @param[in] name : a string used by a file name
  */
-void tbm_surface_internal_dump_buffer(tbm_surface_h surface, const char *type);
+void tbm_surface_internal_dump_buffer(tbm_surface_h surface, const char *name);
 
 /**
  * @brief Dump a shared memory buffer
@@ -452,9 +452,9 @@ void tbm_surface_internal_dump_buffer(tbm_surface_h surface, const char *type);
  * @param[in] w : a width of dump buffer
  * @param[in] h : a height of dump buffer
  * @param[in] stride : a stride of dump buffer
- * @param[in] type : a string used by a file name
+ * @param[in] name : a string used by a file name
  */
-void tbm_surface_internal_dump_shm_buffer(void *ptr, int w, int h, int stride, const char *type);
+void tbm_surface_internal_dump_shm_buffer(void *ptr, int w, int h, int stride, const char *name);
 
 /**
  * @brief check valid tbm surface.
@@ -463,6 +463,46 @@ void tbm_surface_internal_dump_shm_buffer(void *ptr, int w, int h, int stride, c
  * @return 1 if surface is valid, otherwise 0.
  */
 int tbm_surface_internal_is_valid(tbm_surface_h surface);
+
+/**
+ * @brief Capture a buffer
+ * @details
+ * This function supports only if a buffer has below formats.
+ * - TBM_FORMAT_ARGB8888
+ * - TBM_FORMAT_XRGB8888
+ * - TBM_FORMAT_YVU420
+ * - TBM_FORMAT_YUV420
+ * - TBM_FORMAT_NV12
+ * - TBM_FORMAT_NV21
+ * - TBM_FORMAT_YUYV
+ * - TBM_FORMAT_UYVY
+ * The type should be "png" for TBM_FORMAT_ARGB8888 and TBM_FORMAT_XRGB8888
+ * or "yuv" for YUV formats.
+ * @param[in] surface : a tbm surface
+ * @param[in] path : the given dump path
+ * @param[in] name : a string used by a file name
+ * @param[in] type : a string used by a file type ex)png, yuv
+ * @return 1 if success, otherwise 0.
+ */
+int tbm_surface_internal_capture_buffer(tbm_surface_h surface, const char *path,
+				       const char *name, const char *type);
+
+/**
+ * @brief Capture a shared memory buffer
+ * @details
+ * This function supports shared memory buffer dump.
+ * The type should be "png".
+ * @param[in] ptr : a pointer of dump buffer
+ * @param[in] w : a width of dump buffer
+ * @param[in] h : a height of dump buffer
+ * @param[in] stride : a stride of dump buffer
+ * @param[in] path : the given dump path
+ * @param[in] name : a string used by a file name
+ * @param[in] type : a string used by a file type ex)png, yuv
+ * @return 1 if success, otherwise 0.
+ */
+int tbm_surface_internal_capture_shm_buffer(void *ptr, int w, int h, int stride,
+				       const char *path, const char *name, const char *type);
 
 #ifdef __cplusplus
 }

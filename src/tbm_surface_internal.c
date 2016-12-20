@@ -1891,4 +1891,113 @@ void tbm_surface_internal_dump_shm_buffer(void *ptr, int w, int h, int stride,
 
 	TBM_LOG_I("Dump %s \n", buf_info->name);
 }
+
+int
+tbm_surface_internal_capture_buffer(tbm_surface_h surface, const char *path, const char *name, const char *type)
+{
+	TBM_RETURN_VAL_IF_FAIL(surface != NULL, 0);
+	TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
+	TBM_RETURN_VAL_IF_FAIL(name != NULL, 0);
+
+	tbm_surface_info_s info;
+	const char *postfix;
+	int ret;
+	char file[1024];
+
+	ret = tbm_surface_map(surface, TBM_SURF_OPTION_READ|TBM_SURF_OPTION_WRITE, &info);
+	TBM_RETURN_VAL_IF_FAIL(ret == TBM_SURFACE_ERROR_NONE, 0);
+
+	if (info.format == TBM_FORMAT_ARGB8888 || info.format == TBM_FORMAT_XRGB8888)
+		postfix = dump_postfix[0];
+	else
+		postfix = dump_postfix[1];
+
+	if (strcmp(postfix, type)) {
+		TBM_LOG_E("not support type(%s) %c%c%c%c buffer", type, FOURCC_STR(info.format));
+		tbm_surface_unmap(surface);
+		return 0;
+	}
+
+	snprintf(file, sizeof(file), "%s/%s.%s", path , name, postfix);
+
+	if (!access(file, 0)) {
+		TBM_LOG_E("can't capture  buffer, exist file %s", file);
+		tbm_surface_unmap(surface);
+		return 0;
+	}
+
+	switch (info.format) {
+	case TBM_FORMAT_ARGB8888:
+	case TBM_FORMAT_XRGB8888:
+		_tbm_surface_internal_dump_file_png(file, info.planes[0].ptr,
+							info.planes[0].stride >> 2,
+							info.height);
+		break;
+	case TBM_FORMAT_YVU420:
+	case TBM_FORMAT_YUV420:
+		_tbm_surface_internal_dump_file_raw(file, info.planes[0].ptr,
+				info.planes[0].stride * info.height,
+				info.planes[1].ptr,
+				info.planes[1].stride * (info.height >> 1),
+				info.planes[2].ptr,
+				info.planes[2].stride * (info.height >> 1));
+		break;
+	case TBM_FORMAT_NV12:
+	case TBM_FORMAT_NV21:
+		_tbm_surface_internal_dump_file_raw(file, info.planes[0].ptr,
+					info.planes[0].stride * info.height,
+					info.planes[1].ptr,
+					info.planes[1].stride * (info.height >> 1),
+					NULL, 0);
+		break;
+	case TBM_FORMAT_YUYV:
+	case TBM_FORMAT_UYVY:
+		_tbm_surface_internal_dump_file_raw(file, info.planes[0].ptr,
+					info.planes[0].stride * info.height,
+					NULL, 0, NULL, 0);
+		break;
+	default:
+		TBM_LOG_E("can't dump %c%c%c%c buffer", FOURCC_STR(info.format));
+		tbm_surface_unmap(surface);
+		return 0;
+	}
+
+	tbm_surface_unmap(surface);
+
+	TBM_LOG_I("Capture %s \n", file);
+
+	return 1;
+}
+
+int
+tbm_surface_internal_capture_shm_buffer(void *ptr, int w, int h, int stride,
+						const char *path, const char *name, const char *type)
+{
+	TBM_RETURN_VAL_IF_FAIL(ptr != NULL, 0);
+	TBM_RETURN_VAL_IF_FAIL(w > 0, 0);
+	TBM_RETURN_VAL_IF_FAIL(h > 0, 0);
+	TBM_RETURN_VAL_IF_FAIL(stride > 0, 0);
+	TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
+	TBM_RETURN_VAL_IF_FAIL(name != NULL, 0);
+
+	char file[1024];
+
+	if (strcmp(dump_postfix[0], type)) {
+		TBM_LOG_E("Not supported type:%s'", type);
+		return 0;
+	}
+
+	if (!access(file, 0)) {
+		TBM_LOG_E("can't capture buffer, exist file %s", file);
+		return 0;
+	}
+
+	snprintf(file, sizeof(file), "%s/%s.%s", path , name, dump_postfix[0]);
+
+	_tbm_surface_internal_dump_file_png(file, ptr, stride, h);
+
+	TBM_LOG_I("Capture %s \n", file);
+
+	return 1;
+}
 /*LCOV_EXCL_STOP*/
