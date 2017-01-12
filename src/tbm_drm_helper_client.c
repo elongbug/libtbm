@@ -186,5 +186,73 @@ tbm_drm_helper_get_auth_info(int *auth_fd, char **device, uint32_t *capabilities
 
 	return 1;
 }
-/* LCOV_EXCL_STOP */
 
+
+void
+tbm_drm_helper_set_fd(int fd)
+{
+	char buf[32];
+	int ret;
+
+	snprintf(buf, sizeof(buf), "%d", fd);
+
+	ret = setenv("TBM_DRM_FD", (const char*)buf, 1);
+	if (ret) {
+		TBM_LOG_E("failed to set TBM_DRM_FD to %d\n", fd);
+		return;
+	}
+
+	TBM_LOG_I("TBM_DRM_FD: %d\n", fd);
+}
+
+void
+tbm_drm_helper_unset_fd(void)
+{
+	int ret;
+
+	ret = unsetenv("TBM_DRM_FD");
+	if (ret) {
+		TBM_LOG_E("failed to unset TBM_DRM_FD\n");
+		return;
+	}
+}
+
+int
+tbm_drm_helper_get_fd(void)
+{
+	const char *value;
+	int ret, flags, fd = -1;
+	int new_fd = -1;
+
+	value = (const char*)getenv("TBM_DRM_FD");
+	if (!value)
+		return -1;
+
+	ret = sscanf(value, "%d", &fd);
+	if (ret <= 0)
+		return -1;
+
+	TBM_LOG_I("TBM_DRM_FD: %d\n", fd);
+
+	flags = fcntl(fd, F_GETFD);
+	if (flags == -1) {
+		TBM_LOG_E("fcntl failed: %m\n");
+		return -1;
+	}
+
+	new_fd = dup(fd);
+	if (new_fd < 0) {
+		TBM_LOG_E("dup failed: %m\n");
+		return -1;
+	}
+
+	fcntl(new_fd, F_SETFD, flags|FD_CLOEXEC);
+
+	TBM_LOG_I("Return TBM_FD: %d\n", new_fd);
+
+	return new_fd;
+
+	return fd;
+}
+
+/* LCOV_EXCL_STOP */

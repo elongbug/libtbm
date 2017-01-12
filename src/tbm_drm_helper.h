@@ -109,4 +109,36 @@ void tbm_drm_helper_unset_tbm_master_fd(void);
  */
 int tbm_drm_helper_get_auth_info(int *auth_fd, char **device, uint32_t *capabilities);
 
+/**
+ * @brief Set the given fd to TBM_DRM_FD enviroment variable.
+ * @details
+ * Some client want to get drm fd used tbm_backend.
+   if tbm_backend allow that client use drm_fd, it SHOULD be set.
+ * @param[in] fd The given fd
+ * @see #tbm_drm_helper_get_fd()
+ */
+void tbm_drm_helper_set_fd(int fd);
+
+/**
+ * @brief Unset the given fd to TBM_DRM_FD enviroment variable.
+ * @details
+ * Some client want to get drm fd used tbm_backend.
+   if tbm_backend allow that client use drm_fd, it SHOULD be set.
+ * @param[in] fd The given fd
+ * @see #tbm_drm_helper_get_fd()
+ */
+void tbm_drm_helper_unset_fd(void);
+
+/**
+ * @brief Get the fd from TBM_DRM_FD enviroment variable.
+ * @details
+ * Some client want to get drm fd used tbm_backend.
+   client can get drm fd from this fucntion.
+   The Caller SHOULD close the fd.
+ * @return fd if success. Otherwise, -1.
+ * @see #tdm_helper_set_tbm_master_fd()
+ * @see #tbm_drm_helper_unset_tbm_master_fd()
+ */
+int tbm_drm_helper_get_fd(void);
+
 #endif							/* _TBM_DRM_HELPER_H_ */
