@@ -238,7 +238,7 @@ tbm_drm_helper_set_tbm_master_fd(int fd)
 
 	ret = setenv("TBM_DRM_MASTER_FD", (const char*)buf, 1);
 	if (ret) {
-		TBM_LOG_E("failed to set TIZEN_DRM_MASTER_FD to %d", fd);
+		TBM_LOG_E("failed to set TIZEN_DRM_MASTER_FD to %d\n", fd);
 		return;
 	}
 
@@ -252,7 +252,7 @@ tbm_drm_helper_unset_tbm_master_fd(void)
 
 	ret = unsetenv("TBM_DRM_MASTER_FD");
 	if (ret) {
-		TBM_LOG_E("failed to unset TBM_DRM_MASTER_FD");
+		TBM_LOG_E("failed to unset TBM_DRM_MASTER_FD\n");
 		return;
 	}
 }

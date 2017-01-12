@@ -32,12 +32,81 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef _TBM_DRM_HELPER_H_
 #define _TBM_DRM_HELPER_H_
 
+/**
+ * @brief Initialize authentication server in display server.
+ * @details
+ * In DRM system, client sholud get authenticated fd from display server for using drm.
+   Tbm provides wayland protocol and helper function for passing and authenticating
+   fd from display server.
+ * @param[in] wl_display wayland display
+ * @param[in] fd fd of drm_master
+ * @param[in] device_name name of drm device
+ * @param[in] flags flags
+  * @see #tbm_drm_helper_wl_auth_server_deinit()
+ */
 int tbm_drm_helper_wl_auth_server_init(void  *wl_display, int fd, const char *device_name, uint32_t flags);
+
+/**
+ * @brief Deinitialize authentication server in display server
+ * @details
+ * In DRM system, client sholud get authenticated fd from display server for using drm.
+   Tbm provides wayland protocol and helper function for passing and authenticating
+   fd from display server.
+ * @see #tdm_helper_set_tbm_master_fd()
+ * @see #tbm_drm_helper_unset_tbm_master_fd()
+ */
 void tbm_drm_helper_wl_auth_server_deinit(void);
-int tbm_drm_helper_get_master_fd(void);
+
+/**
+ * @brief Get a fd from the specific enviroment variable.
+ * @details
+ * This function will dup the fd of the given enviroment variable.
+   The Caller SHOULD close the fd.
+   In DRM system, a drm-master-fd SHOULD be shared between TDM backend and
+   TBM backend in display server side by using "TDM_DRM_MASTER_FD" and "TBM_DRM_MASTER_FD".
+ * @param[in] env The given enviroment variable
+ * @return fd if success. Otherwise, -1.
+ * @see #tdm_helper_set_tbm_master_fd()
+ */
+int  tbm_drm_helper_get_master_fd(void);
+
+/**
+ * @brief Set the given fd to TBM_DRM_MASTER_FD enviroment variable.
+ * @details
+ * In DRM system, a drm-master-fd @b SHOULD be shared between TDM backend and
+   TBM backend in display server side by using "TDM_DRM_MASTER_FD"
+   and "TBM_DRM_MASTER_FD".
+ * @param[in] fd The given fd
+ * @see #tdm_helper_set_tbm_master_fd()
+ * @see #tbm_drm_helper_unset_tbm_master_fd()
+ */
 void tbm_drm_helper_set_tbm_master_fd(int fd);
+
+/**
+ * @brief Unset the TBM_DRM_MASTER_FD enviroment variable.
+ * @details
+ * In DRM system, a drm-master-fd @b SHOULD be shared between TDM backend and
+   TBM backend in display server side by using "TDM_DRM_MASTER_FD"
+   and "TBM_DRM_MASTER_FD".
+ * @param[in] env The given enviroment variable
+ * @param[in] fd The given fd
+ * @see #tdm_helper_set_tbm_master_fd()
+ * @see #tbm_drm_helper_unset_tbm_master_fd()
+ */
 void tbm_drm_helper_unset_tbm_master_fd(void);
 
+/**
+ * @brief Get infomation of drm authentication.
+ * @details
+ * In DRM system, client sholud get authenticated fd from display server for using drm.
+   Tbm provides wayland protocol and helper function for passing and authenticating
+   fd from display server.
+ * @param[out] fd The authenticated fd
+ * @param[out] device The device name
+ * @param[out] capabilities The capabilities of device
+ * @see #tdm_helper_set_tbm_master_fd()
+ * @see #tbm_drm_helper_unset_tbm_master_fd()
+ */
 int tbm_drm_helper_get_auth_info(int *auth_fd, char **device, uint32_t *capabilities);
 
 #endif							/* _TBM_DRM_HELPER_H_ */
