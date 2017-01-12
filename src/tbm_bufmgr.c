@@ -614,6 +614,11 @@ tbm_bufmgr_init(int fd)
 
 	pthread_mutex_lock(&gLock);
 
+	if (fd >= 0) {
+		TBM_LOG_W("!!!!!WARNING:: The tbm_bufmgr_init DOSE NOT use argument fd ANYMORE.\n");
+		TBM_LOG_W("!!!!!WARNING:: IT WILL BE CHANGED like tbm_bufmgr_init(int fd) --> tbm_bufmgr_init(void).\n");
+	}
+
 	/* initialize buffer manager */
 	if (gBufMgr) {
 		gBufMgr->ref_count++;
