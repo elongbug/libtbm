@@ -1580,16 +1580,17 @@ tbm_bufmgr_debug_trace(tbm_bufmgr bufmgr, int onoff)
 int
 tbm_bufmgr_debug_queue_dump(char *path, int count, int onoff)
 {
-	TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
-	TBM_LOG_D("path=%s count=%d onoff=%d\n", path, count, onoff);
-
 	pthread_mutex_lock(&gLock);
 
 	if (onoff == 0) {
+		TBM_LOG_D("count=%d onoff=%d\n", count, onoff);
 		b_dump_queue = 0;
 		tbm_surface_internal_dump_end();
 	} else {
 		int w, h;
+
+		TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
+		TBM_LOG_D("path=%s count=%d onoff=%d\n", path, count, onoff);
 
 		if (_tbm_util_get_max_surface_size(&w, &h) == 0) {
 			TBM_LOG_I("Fail to get tbm_surface size.\n");
