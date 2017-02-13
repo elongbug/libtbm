@@ -1589,7 +1589,11 @@ tbm_bufmgr_debug_queue_dump(char *path, int count, int onoff)
 	} else {
 		int w, h;
 
-		TBM_RETURN_VAL_IF_FAIL(path != NULL, 0);
+		if (path == NULL) {
+			TBM_LOG_E("path is null");
+			pthread_mutex_unlock(&gLock);
+			return 0;
+		}
 		TBM_LOG_D("path=%s count=%d onoff=%d\n", path, count, onoff);
 
 		if (_tbm_util_get_max_surface_size(&w, &h) == 0) {
