@@ -251,8 +251,6 @@ tbm_drm_helper_get_fd(void)
 	TBM_LOG_I("Return TBM_FD: %d\n", new_fd);
 
 	return new_fd;
-
-	return fd;
 }
 
 /* LCOV_EXCL_STOP */
