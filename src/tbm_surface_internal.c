@@ -1355,19 +1355,21 @@ tbm_surface_internal_set_debug_data(tbm_surface_h surface, char *key, char *valu
 
 	if (!LIST_IS_EMPTY(&surface->debug_data_list)) {
 		LIST_FOR_EACH_ENTRY(old_data, &surface->debug_data_list, item_link) {
-			if (!strcmp(old_data->key, key)) {
-				if (old_data->value && value && !strncmp(old_data->value, value, strlen(old_data->value))) {
-					TBM_TRACE("tbm_surface(%p) Already exist key(%s) and value(%s)!\n", surface, key, value);
-					goto add_debug_key_list;
+			if (old_data) {
+				if (!strcmp(old_data->key, key)) {
+					if (old_data->value && value && !strncmp(old_data->value, value, strlen(old_data->value))) {
+						TBM_TRACE("tbm_surface(%p) Already exist key(%s) and value(%s)!\n", surface, key, value);
+						goto add_debug_key_list;
+					}
+
+					if (old_data->value)
+						free(old_data->value);
+
+					if (value)
+						old_data->value = strdup(value);
+					else
+						old_data->value = NULL;
 				}
-
-				if (old_data->value)
-					free(old_data->value);
-
-				if (value)
-					old_data->value = strdup(value);
-				else
-					old_data->value = NULL;
 			}
 		}
 	}
