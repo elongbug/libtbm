@@ -1444,7 +1444,7 @@ tbm_get_last_error(void)
 void
 tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 {
-	char app_name[255] = {0,}, title[255] = {0,};
+	char app_name[255] = {0,}, title[512] = {0,};
 	tbm_surface_debug_data *debug_old_data = NULL;
 
 	pthread_mutex_lock(&gLock);
@@ -1479,7 +1479,7 @@ tbm_bufmgr_debug_show(tbm_bufmgr bufmgr)
 		int surf_cnt = 0;
 
 		LIST_FOR_EACH_ENTRY(surf, &bufmgr->surf_list, item_link) {
-			char data[255] = {0,};
+			char data[512] = {0,};
 			unsigned int pid;
 			int i;
 
