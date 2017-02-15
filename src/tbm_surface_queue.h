@@ -41,6 +41,8 @@ typedef enum {
 	TBM_SURFACE_QUEUE_ERROR_EMPTY = -3,
 	TBM_SURFACE_QUEUE_ERROR_INVALID_PARAMETER = -4,
 	TBM_SURFACE_QUEUE_ERROR_SURFACE_ALLOC_FAILED = -5,
+	TBM_SURFACE_QUEUE_ERROR_ALREADY_EXIST = -6,
+	TBM_SURFACE_QUEUE_ERROR_UNKNOWN_SURFACE = -7,
 } tbm_surface_queue_error_e;
 
 typedef struct _tbm_surface_queue *tbm_surface_queue_h;
