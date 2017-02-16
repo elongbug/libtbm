@@ -94,6 +94,8 @@ tbm_surface_queue_error_e tbm_surface_queue_set_size(
 
 tbm_surface_queue_error_e tbm_surface_queue_flush(tbm_surface_queue_h surface_queue);
 
+tbm_surface_queue_error_e tbm_surface_queue_notify_reset(tbm_surface_queue_h surface_queue);
+
 tbm_surface_queue_error_e tbm_surface_queue_add_reset_cb(
 	tbm_surface_queue_h surface_queue, tbm_surface_queue_notify_cb reset_cb,
 	void *data);

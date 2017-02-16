@@ -1279,6 +1279,21 @@ tbm_surface_queue_reset(tbm_surface_queue_h
 }
 
 tbm_surface_queue_error_e
+tbm_surface_queue_notify_reset(tbm_surface_queue_h surface_queue)
+{
+	_tbm_surf_queue_mutex_lock();
+
+	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(_tbm_surface_queue_is_valid(surface_queue),
+			       TBM_SURFACE_QUEUE_ERROR_INVALID_QUEUE);
+
+	_tbm_surf_queue_mutex_unlock();
+
+	_notify_emit(surface_queue, &surface_queue->reset_noti);
+
+	return TBM_SURFACE_QUEUE_ERROR_NONE;
+}
+
+tbm_surface_queue_error_e
 tbm_surface_queue_set_size(tbm_surface_queue_h
 			surface_queue, int queue_size, int flush)
 {
