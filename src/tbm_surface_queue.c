@@ -1040,7 +1040,11 @@ tbm_surface_queue_dequeue(tbm_surface_queue_h
 int
 tbm_surface_queue_can_dequeue(tbm_surface_queue_h surface_queue, int wait)
 {
-	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(surface_queue, 0);
+	_tbm_surf_queue_mutex_lock();
+
+	TBM_SURF_QUEUE_RETURN_VAL_IF_FAIL(_tbm_surface_queue_is_valid(surface_queue), 0);
+
+	_tbm_surf_queue_mutex_unlock();
 
 	_notify_emit(surface_queue, &surface_queue->can_dequeue_noti);
 
