@@ -45,6 +45,14 @@ typedef enum {
 	TBM_SURFACE_QUEUE_ERROR_UNKNOWN_SURFACE = -7,
 } tbm_surface_queue_error_e;
 
+typedef enum {
+	TBM_SURFACE_QUEUE_TRACE_NONE = 0,					  /**< Successful */
+	TBM_SURFACE_QUEUE_TRACE_DEQUEUE = 1,
+	TBM_SURFACE_QUEUE_TRACE_ENQUEUE = 2,
+	TBM_SURFACE_QUEUE_TRACE_ACQUIRE = 3,
+	TBM_SURFACE_QUEUE_TRACE_RELEASE = 4,
+} tbm_surface_queue_trace;
+
 typedef struct _tbm_surface_queue *tbm_surface_queue_h;
 
 typedef void (*tbm_surface_queue_notify_cb)(tbm_surface_queue_h surface_queue,
@@ -55,6 +63,9 @@ typedef tbm_surface_h(*tbm_surface_alloc_cb)(tbm_surface_queue_h surface_queue,
 
 typedef void (*tbm_surface_free_cb)(tbm_surface_queue_h surface_queue,
 		void *data, tbm_surface_h surface);
+
+typedef void (*tbm_surface_queue_trace_cb)(tbm_surface_queue_h surface_queue,
+		tbm_surface_h surface, tbm_surface_queue_trace trace, void *data);
 
 #ifdef __cplusplus
 extern "C" {
@@ -142,6 +153,14 @@ tbm_surface_queue_error_e tbm_surface_queue_add_acquirable_cb(
 
 tbm_surface_queue_error_e tbm_surface_queue_remove_acquirable_cb(
 	tbm_surface_queue_h surface_queue, tbm_surface_queue_notify_cb acquirable_cb,
+	void *data);
+
+tbm_surface_queue_error_e tbm_surface_queue_add_trace_cb(
+	tbm_surface_queue_h surface_queue, tbm_surface_queue_trace_cb trace_cb,
+	void *data);
+
+tbm_surface_queue_error_e tbm_surface_queue_remove_trace_cb(
+	tbm_surface_queue_h surface_queue, tbm_surface_queue_trace_cb trace_cb,
 	void *data);
 
 tbm_surface_queue_error_e tbm_surface_queue_set_alloc_cb(
