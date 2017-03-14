@@ -228,7 +228,7 @@ _tbm_surface_mutex_init(void)
 		return true;
 
 	if (pthread_mutex_init(&tbm_surface_lock, NULL)) {
-		TBM_LOG_E("fail: tbm_surface mutex init\n");
+		TBM_LOG_E("fail: pthread_mutex_init for tbm_surface_lock.\n");
 		return false;
 	}
 
@@ -240,8 +240,10 @@ _tbm_surface_mutex_init(void)
 void
 _tbm_surface_mutex_lock(void)
 {
-	if (!_tbm_surface_mutex_init())
+	if (!_tbm_surface_mutex_init()) {
+		TBM_LOG_E("fail: _tbm_surface_mutex_init.\n");
 		return;
+	}
 
 	pthread_mutex_lock(&tbm_surface_lock);
 }
@@ -273,10 +275,8 @@ _tbm_surface_internal_is_valid(tbm_surface_h surface)
 {
 	tbm_surface_h old_data = NULL;
 
-	if (surface == NULL || g_surface_bufmgr == NULL) {
-		TBM_TRACE("error: tbm_surface(%p)\n", surface);
-		return 0;
-	}
+	TBM_RETURN_VAL_IF_FAIL(g_surface_bufmgr, 0);
+	TBM_RETURN_VAL_IF_FAIL(surface, 0);
 
 	if (!LIST_IS_EMPTY(&g_surface_bufmgr->surf_list)) {
 		LIST_FOR_EACH_ENTRY(old_data, &g_surface_bufmgr->surf_list, item_link) {
@@ -286,7 +286,9 @@ _tbm_surface_internal_is_valid(tbm_surface_h surface)
 			}
 		}
 	}
-	TBM_TRACE("error: tbm_surface(%p)\n", surface);
+
+	TBM_LOG_E("error: No valid tbm_surface(%p)\n", surface);
+
 	return 0;
 }
 
@@ -311,8 +313,10 @@ _tbm_surface_internal_query_plane_data(tbm_surface_h surface,
 
 	ret = mgr->backend->surface_get_plane_data(surf->info.width,
 			surf->info.height, surf->info.format, plane_idx, size, offset, pitch, bo_idx);
-	if (!ret)
+	if (!ret) {
+		TBM_LOG_E("Fail to surface_get_plane_data. surface(%p)\n", surface);
 		return 0;
+	}
 
 	return 1;
 }
@@ -370,6 +374,12 @@ tbm_surface_internal_is_valid(tbm_surface_h surface)
 
 	_tbm_surface_mutex_lock();
 
+	/* Return silently if surface is null. */
+	if (!surface) {
+		_tbm_surface_mutex_unlock();
+		return 0;
+	}
+
 	ret = _tbm_surface_internal_is_valid(surface);
 
 	_tbm_surface_mutex_unlock();
@@ -399,8 +409,10 @@ tbm_surface_internal_query_supported_formats(uint32_t **formats,
 		goto fail;
 
 	ret = mgr->backend->surface_supported_format(formats, num);
-	if (!ret)
+	if (!ret)  {
+		TBM_LOG_E("Fail to surface_supported_format.\n");
 		goto fail;
+	}
 
 	TBM_TRACE("tbm_bufmgr(%p) format num(%u)\n", g_surface_bufmgr, *num);
 
@@ -414,7 +426,9 @@ fail:
 		_deinit_surface_bufmgr();
 	}
 	_tbm_surface_mutex_unlock();
-	TBM_TRACE("error: tbm_bufmgr(%p)\n", g_surface_bufmgr);
+
+	TBM_LOG_E("error: tbm_bufmgr(%p)\n", g_surface_bufmgr);
+
 	return 0;
 }
 
@@ -743,9 +757,11 @@ check_valid_fail:
 		_deinit_surface_bufmgr();
 	}
 	_tbm_surface_mutex_unlock();
-	TBM_TRACE("error: width(%d) height(%d) format(%s) flags(%d)\n",
+
+	TBM_LOG_E("error: width(%d) height(%d) format(%s) flags(%d)\n",
 			width, height,
 			_tbm_surface_internal_format_to_str(format), flags);
+
 	return NULL;
 }
 
@@ -771,12 +787,16 @@ tbm_surface_internal_create_with_bos(tbm_surface_info_s *info,
 	}
 
 	mgr = g_surface_bufmgr;
-	if (!TBM_BUFMGR_IS_VALID(mgr))
+	if (!TBM_BUFMGR_IS_VALID(mgr)) {
+		TBM_LOG_E("fail to validate the Bufmgr.\n");
 		goto check_valid_fail;
+	}
 
 	surf = calloc(1, sizeof(struct _tbm_surface));
-	if (!surf)
+	if (!surf) {
+		TBM_LOG_E("fail to allocate struct _tbm_surface.\n");
 		goto alloc_surf_fail;
+	}
 
 	surf->bufmgr = mgr;
 	surf->info.width = info->width;
@@ -815,8 +835,10 @@ tbm_surface_internal_create_with_bos(tbm_surface_info_s *info,
 	/* create only one bo */
 	surf->num_bos = num;
 	for (i = 0; i < num; i++) {
-		if (bos[i] == NULL)
+		if (bos[i] == NULL) {
+			TBM_LOG_E("bos[%d] is null.\n", i);
 			goto check_bo_fail;
+		}
 
 		surf->bos[i] = tbm_bo_ref(bos[i]);
 		_tbm_bo_set_surface(bos[i], surf);
@@ -847,9 +869,11 @@ check_valid_fail:
 		_deinit_surface_bufmgr();
 	}
 	_tbm_surface_mutex_unlock();
-	TBM_TRACE("error: width(%u) height(%u) format(%s) bo_num(%d)\n",
+
+	TBM_LOG_E("error: width(%u) height(%u) format(%s) bo_num(%d)\n",
 			info->width, info->height,
 			_tbm_surface_internal_format_to_str(info->format), num);
+
 	return NULL;
 }
 
@@ -1044,7 +1068,7 @@ tbm_surface_internal_get_info(tbm_surface_h surface, int opt,
 				for (j = 0; j < i; j++)
 					tbm_bo_unmap(surf->bos[j]);
 
-				TBM_TRACE("error: tbm_surface(%p) opt(%d) map(%d)\n", surface, opt, map);
+				TBM_LOG_E("error: tbm_surface(%p) opt(%d) map(%d)\n", surface, opt, map);
 				_tbm_surface_mutex_unlock();
 				return 0;
 			}
@@ -1053,7 +1077,7 @@ tbm_surface_internal_get_info(tbm_surface_h surface, int opt,
 		for (i = 0; i < surf->num_bos; i++) {
 			bo_handles[i] = tbm_bo_get_handle(surf->bos[i], TBM_DEVICE_CPU);
 			if (bo_handles[i].ptr == NULL) {
-				TBM_TRACE("error: tbm_surface(%p) opt(%d) map(%d)\n", surface, opt, map);
+				TBM_LOG_E("error: tbm_surface(%p) opt(%d) map(%d)\n", surface, opt, map);
 				_tbm_surface_mutex_unlock();
 				return 0;
 			}
@@ -1253,7 +1277,7 @@ tbm_surface_internal_get_user_data(tbm_surface_h surface, unsigned long key,
 	TBM_SURFACE_RETURN_VAL_IF_FAIL(_tbm_surface_internal_is_valid(surface), 0);
 
 	if (!data) {
-		TBM_TRACE("error: tbm_surface(%p) key(%lu)\n", surface, key);
+		TBM_LOG_E("error: tbm_surface(%p) key(%lu)\n", surface, key);
 		_tbm_surface_mutex_unlock();
 		return 0;
 	}
@@ -1376,7 +1400,7 @@ tbm_surface_internal_set_debug_data(tbm_surface_h surface, char *key, char *valu
 
 	debug_data = _tbm_surface_internal_debug_data_create(key, value);
 	if (!debug_data) {
-		TBM_TRACE("error: tbm_surface(%p) key(%s) value(%s)\n", surface, key, value);
+		TBM_LOG_E("error: tbm_surface(%p) key(%s) value(%s)\n", surface, key, value);
 		_tbm_surface_mutex_unlock();
 		return 0;
 	}
@@ -1486,12 +1510,14 @@ _tbm_surface_internal_dump_file_png(const char *file, const void *data, int widt
 	png_structp pPngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING,
 							NULL, NULL, NULL);
 	if (!pPngStruct) {
+		TBM_LOG_E("fail to create a png write structure.\n");
 		fclose(fp);
 		return;
 	}
 
 	png_infop pPngInfo = png_create_info_struct(pPngStruct);
 	if (!pPngInfo) {
+		TBM_LOG_E("fail to create a png info structure.\n");
 		png_destroy_write_struct(&pPngStruct, NULL);
 		fclose(fp);
 		return;
@@ -1512,6 +1538,7 @@ _tbm_surface_internal_dump_file_png(const char *file, const void *data, int widt
 
 	row_pointers = png_malloc(pPngStruct, height * sizeof(png_byte *));
 	if (!row_pointers) {
+		TBM_LOG_E("fail to allocate the png row_pointers.\n");
 		png_destroy_write_struct(&pPngStruct, &pPngInfo);
 		fclose(fp);
 		return;
@@ -1523,6 +1550,7 @@ _tbm_surface_internal_dump_file_png(const char *file, const void *data, int widt
 
 		row = png_malloc(pPngStruct, sizeof(png_byte) * width * pixel_size);
 		if (!row) {
+			TBM_LOG_E("fail to allocate the png row.\n");
 			for (x = 0; x < y; x++)
 				png_free(pPngStruct, row_pointers[x]);
 			png_free(pPngStruct, row_pointers);
@@ -1611,6 +1639,7 @@ tbm_surface_internal_dump_start(char *path, int w, int h, int count)
 
 		bo = tbm_bo_alloc(g_surface_bufmgr, buffer_size, TBM_BO_DEFAULT);
 		if (bo == NULL) {
+			TBM_LOG_E("fail to allocate the tbm_bo[%d]\n", i);
 			free(buf_info);
 			goto fail;
 		}
