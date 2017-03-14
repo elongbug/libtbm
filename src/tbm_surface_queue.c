@@ -171,7 +171,7 @@ _tbm_surf_queue_mutex_init(void)
 		return true;
 
 	if (pthread_mutex_init(&tbm_surf_queue_lock, NULL)) {
-		TBM_LOG_E("fail: tbm_surf_queue mutex init\n");
+		TBM_LOG_E("fail: pthread_mutex_init\n");
 		return false;
 	}
 
@@ -183,8 +183,10 @@ _tbm_surf_queue_mutex_init(void)
 static void
 _tbm_surf_queue_mutex_lock(void)
 {
-	if (!_tbm_surf_queue_mutex_init())
+	if (!_tbm_surf_queue_mutex_init()) {
+		TBM_LOG_E("fail: _tbm_surf_queue_mutex_init\n");
 		return;
+	}
 
 	pthread_mutex_lock(&tbm_surf_queue_lock);
 }
@@ -216,13 +218,18 @@ _tbm_surface_queue_is_valid(tbm_surface_queue_h surface_queue)
 {
 	tbm_surface_queue_h old_data = NULL;
 
-	if (surface_queue == NULL || g_surf_queue_bufmgr == NULL) {
-		TBM_TRACE("error: surface_queue is NULL or not initialized\n");
+	if (surface_queue == NULL) {
+		TBM_LOG_E("error: surface_queue is NULL.\n");
+		return 0;
+	}
+
+	if (g_surf_queue_bufmgr == NULL) {
+		TBM_LOG_E("error: g_surf_queue_bufmgr is NULL.\n");
 		return 0;
 	}
 
 	if (LIST_IS_EMPTY(&g_surf_queue_bufmgr->surf_queue_list)) {
-		TBM_TRACE("error: surf_queue_list is empty\n");
+		TBM_LOG_E("error: surf_queue_list is empty\n");
 		return 0;
 	}
 
@@ -234,7 +241,8 @@ _tbm_surface_queue_is_valid(tbm_surface_queue_h surface_queue)
 		}
 	}
 
-	TBM_TRACE("error: Invalid tbm_surface_queue(%p)\n", surface_queue);
+	TBM_LOG_E("error: Invalid tbm_surface_queue(%p)\n", surface_queue);
+
 	return 0;
 }
 
@@ -346,6 +354,8 @@ _queue_get_node(tbm_surface_queue_h surface_queue, int type,
 			}
 		}
 	}
+
+	TBM_LOG_E("fail to get the queue_node.\n");
 
 	return NULL;
 }
@@ -558,8 +568,10 @@ _tbm_surface_queue_dequeue(tbm_surface_queue_h surface_queue)
 		if (surface_queue->impl && surface_queue->impl->need_attach)
 			surface_queue->impl->need_attach(surface_queue);
 
-		if (_queue_is_empty(&surface_queue->free_queue))
+		if (_queue_is_empty(&surface_queue->free_queue)) {
+			TBM_LOG_E("surface_queue->free_queue is empty.\n");
 			return NULL;
+		}
 	}
 
 	node = _queue_node_pop_front(&surface_queue->free_queue);
@@ -1199,10 +1211,10 @@ tbm_surface_queue_can_dequeue(tbm_surface_queue_h surface_queue, int wait)
 		_tbm_surf_queue_mutex_lock();
 
 		if (!_tbm_surface_queue_is_valid(surface_queue)) {
-			  TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
+			TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
 			pthread_mutex_unlock(&surface_queue->lock);
-			  _tbm_surf_queue_mutex_unlock();
-			  return 0;
+			_tbm_surf_queue_mutex_unlock();
+			return 0;
 		}
 
 		pthread_mutex_unlock(&surface_queue->lock);
@@ -1265,6 +1277,7 @@ tbm_surface_queue_release(tbm_surface_queue_h
 	if (_queue_is_empty(&surface_queue->free_queue)) {
 		pthread_mutex_unlock(&surface_queue->lock);
 
+		TBM_LOG_E("surface_queue->free_queue is empty.\n");
 		_tbm_surf_queue_mutex_unlock();
 		return TBM_SURFACE_QUEUE_ERROR_INVALID_SURFACE;
 	}
@@ -1355,10 +1368,10 @@ tbm_surface_queue_can_acquire(tbm_surface_queue_h surface_queue, int wait)
 		_tbm_surf_queue_mutex_lock();
 
 		if (!_tbm_surface_queue_is_valid(surface_queue)) {
-			  TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
+			TBM_LOG_E("surface_queue:%p is invalid", surface_queue);
 			pthread_mutex_unlock(&surface_queue->lock);
-			  _tbm_surf_queue_mutex_unlock();
-			  return 0;
+			_tbm_surf_queue_mutex_unlock();
+			return 0;
 		}
 
 		pthread_mutex_unlock(&surface_queue->lock);
@@ -1648,6 +1661,7 @@ __tbm_queue_default_need_attach(tbm_surface_queue_h surface_queue)
 		_tbm_surf_queue_mutex_lock();
 		pthread_mutex_lock(&surface_queue->lock);
 
+		/* silent return */
 		if (!surface)
 			return;
 
@@ -1696,6 +1710,7 @@ tbm_surface_queue_create(int queue_size, int width,
 	tbm_queue_default *data = (tbm_queue_default *) calloc(1,
 				  sizeof(tbm_queue_default));
 	if (data == NULL) {
+		TBM_LOG_E("cannot allocate the tbm_queue_default.\n");
 		free(surface_queue);
 		_tbm_surf_queue_mutex_unlock();
 		return NULL;
@@ -1755,6 +1770,7 @@ __tbm_queue_sequence_need_attach(tbm_surface_queue_h surface_queue)
 		_tbm_surf_queue_mutex_lock();
 		pthread_mutex_lock(&surface_queue->lock);
 
+		/* silent return */
 		if (!surface)
 			return;
 
@@ -1836,6 +1852,7 @@ tbm_surface_queue_sequence_create(int queue_size, int width,
 	tbm_queue_sequence *data = (tbm_queue_sequence *) calloc(1,
 				   sizeof(tbm_queue_sequence));
 	if (data == NULL) {
+		TBM_LOG_E("cannot allocate the tbm_queue_sequence.\n");
 		free(surface_queue);
 		_tbm_surf_queue_mutex_unlock();
 		return NULL;
