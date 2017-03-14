@@ -113,7 +113,7 @@ _tbm_bufmgr_mutex_init(void)
 		return true;
 
 	if (pthread_mutex_init(&tbm_bufmgr_lock, NULL)) {
-		TBM_LOG_E("fail: tbm_bufmgr mutex init\n");
+		TBM_LOG_E("fail: Cannot pthread_mutex_init for tbm_bufmgr_lock.\n");
 		return false;
 	}
 
@@ -125,8 +125,10 @@ _tbm_bufmgr_mutex_init(void)
 static void
 _tbm_bufmgr_mutex_lock(void)
 {
-	if (!_tbm_bufmgr_mutex_init())
+	if (!_tbm_bufmgr_mutex_init()) {
+		TBM_LOG_E("fail: _tbm_bufmgr_mutex_init()\n");
 		return;
+	}
 
 	pthread_mutex_lock(&tbm_bufmgr_lock);
 }
@@ -239,12 +241,12 @@ _tbm_util_get_appname_from_pid(long pid, char *str)
 
 	fp = fopen(fn_cmdline, "r");
 	if (fp == 0) {
-		fprintf(stderr, "cannot file open %s\n", fn_cmdline);
+		TBM_LOG_E("cannot file open %s\n", fn_cmdline);
 		return;
 	}
 
 	if (!fgets(cmdline, 255, fp)) {
-		fprintf(stderr, "fail to get appname for pid(%ld)\n", pid);
+		TBM_LOG_E("fail to get appname for pid(%ld)\n", pid);
 		fclose(fp);
 		return;
 	}
@@ -283,8 +285,10 @@ tbm_user_data
 	tbm_user_data *user_data;
 
 	user_data = calloc(1, sizeof(tbm_user_data));
-	if (!user_data)
+	if (!user_data) {
+		TBM_LOG_E("fail to allocate an user_date\n");
 		return NULL;
+	}
 
 	user_data->key = key;
 	user_data->free_func = data_free_func;
@@ -430,13 +434,17 @@ _tbm_bo_is_valid(tbm_bo bo)
 		return 0;
 	}
 
-	if (LIST_IS_EMPTY(&gBufMgr->bo_list))
+	if (LIST_IS_EMPTY(&gBufMgr->bo_list)) {
+		TBM_LOG_E("error: gBufMgr->bo_list is EMPTY.\n");
 		return 0;
+	}
 
 	LIST_FOR_EACH_ENTRY(old_data, &gBufMgr->bo_list, item_link) {
 		if (old_data == bo)
 			return 1;
 	}
+
+	TBM_LOG_E("error: No valid bo(%p).\n", bo);
 
 	return 0;
 }
@@ -859,7 +867,7 @@ tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 
 	bo = calloc(1, sizeof(struct _tbm_bo));
 	if (!bo) {
-		TBM_TRACE("error: fail to create of tbm_bo size(%d) flag(%s)\n",
+		TBM_LOG_E("error: fail to create of tbm_bo size(%d) flag(%s)\n",
 				size, _tbm_flag_to_str(flags));
 		_tbm_set_last_result(TBM_BO_ERROR_HEAP_ALLOC_FAILED);
 		_tbm_bufmgr_mutex_unlock();
@@ -872,7 +880,7 @@ tbm_bo_alloc(tbm_bufmgr bufmgr, int size, int flags)
 
 	bo_priv = bufmgr->backend->bo_alloc(bo, size, flags);
 	if (!bo_priv) {
-		TBM_TRACE("error: fail to create of tbm_bo size(%d) flag(%s)\n",
+		TBM_LOG_E("error: fail to create of tbm_bo size(%d) flag(%s)\n",
 				size, _tbm_flag_to_str(flags));
 		_tbm_set_last_result(TBM_BO_ERROR_BO_ALLOC_FAILED);
 		free(bo);
@@ -918,7 +926,7 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 
 	bo = calloc(1, sizeof(struct _tbm_bo));
 	if (!bo) {
-		TBM_TRACE("error: fail to import of tbm_bo by key(%d)\n", key);
+		TBM_LOG_E("error: fail to import of tbm_bo by key(%d)\n", key);
 		_tbm_bufmgr_mutex_unlock();
 		return NULL;
 	}
@@ -927,7 +935,7 @@ tbm_bo_import(tbm_bufmgr bufmgr, unsigned int key)
 
 	bo_priv = bufmgr->backend->bo_import(bo, key);
 	if (!bo_priv) {
-		TBM_TRACE("error: fail to import of tbm_bo by key(%d)\n", key);
+		TBM_LOG_E("error: fail to import of tbm_bo by key(%d)\n", key);
 		_tbm_set_last_result(TBM_BO_ERROR_IMPORT_FAILED);
 		free(bo);
 		_tbm_bufmgr_mutex_unlock();
@@ -992,7 +1000,7 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 
 	bo = calloc(1, sizeof(struct _tbm_bo));
 	if (!bo) {
-		TBM_TRACE("error: fail to import tbm_bo by tbm_fd(%d)\n", fd);
+		TBM_LOG_E("error: fail to import tbm_bo by tbm_fd(%d)\n", fd);
 		_tbm_bufmgr_mutex_unlock();
 		return NULL;
 	}
@@ -1001,7 +1009,7 @@ tbm_bo_import_fd(tbm_bufmgr bufmgr, tbm_fd fd)
 
 	bo_priv = bufmgr->backend->bo_import_fd(bo, fd);
 	if (!bo_priv) {
-		TBM_TRACE("error: fail to import tbm_bo by tbm_fd(%d)\n", fd);
+		TBM_LOG_E("error: fail to import tbm_bo by tbm_fd(%d)\n", fd);
 		_tbm_set_last_result(TBM_BO_ERROR_IMPORT_FD_FAILED);
 		free(bo);
 		_tbm_bufmgr_mutex_unlock();
@@ -1065,7 +1073,7 @@ tbm_bo_export(tbm_bo bo)
 	ret = bufmgr->backend->bo_export(bo);
 	if (!ret) {
 		_tbm_set_last_result(TBM_BO_ERROR_EXPORT_FAILED);
-		TBM_TRACE("error: bo(%p) tbm_key(%d)\n", bo, ret);
+		TBM_LOG_E("error: bo(%p) tbm_key(%d)\n", bo, ret);
 		_tbm_bufmgr_mutex_unlock();
 		return ret;
 	}
@@ -1096,7 +1104,7 @@ tbm_bo_export_fd(tbm_bo bo)
 	ret = bufmgr->backend->bo_export_fd(bo);
 	if (ret < 0) {
 		_tbm_set_last_result(TBM_BO_ERROR_EXPORT_FD_FAILED);
-		TBM_TRACE("error: bo(%p) tbm_fd(%d)\n", bo, ret);
+		TBM_LOG_E("error: bo(%p) tbm_fd(%d)\n", bo, ret);
 		_tbm_bufmgr_mutex_unlock();
 		return ret;
 	}
@@ -1122,7 +1130,7 @@ tbm_bo_get_handle(tbm_bo bo, int device)
 	bo_handle = bufmgr->backend->bo_get_handle(bo, device);
 	if (bo_handle.ptr == NULL) {
 		_tbm_set_last_result(TBM_BO_ERROR_GET_HANDLE_FAILED);
-		TBM_TRACE("error: bo(%p) bo_handle(%p)\n", bo, bo_handle.ptr);
+		TBM_LOG_E("error: bo(%p) bo_handle(%p)\n", bo, bo_handle.ptr);
 		_tbm_bufmgr_mutex_unlock();
 		return (tbm_bo_handle) NULL;
 	}
@@ -1147,7 +1155,7 @@ tbm_bo_map(tbm_bo bo, int device, int opt)
 
 	if (!_tbm_bo_lock(bo, device, opt)) {
 		_tbm_set_last_result(TBM_BO_ERROR_LOCK_FAILED);
-		TBM_TRACE("error: fail to lock bo:%p)\n", bo);
+		TBM_LOG_E("error: fail to lock bo:%p)\n", bo);
 		_tbm_bufmgr_mutex_unlock();
 		return (tbm_bo_handle) NULL;
 	}
@@ -1155,7 +1163,7 @@ tbm_bo_map(tbm_bo bo, int device, int opt)
 	bo_handle = bufmgr->backend->bo_map(bo, device, opt);
 	if (bo_handle.ptr == NULL) {
 		_tbm_set_last_result(TBM_BO_ERROR_MAP_FAILED);
-		TBM_TRACE("error: fail to map bo:%p\n", bo);
+		TBM_LOG_E("error: fail to map bo:%p\n", bo);
 		_tbm_bo_unlock(bo);
 		_tbm_bufmgr_mutex_unlock();
 		return (tbm_bo_handle) NULL;
@@ -1184,7 +1192,7 @@ tbm_bo_unmap(tbm_bo bo)
 
 	ret = bufmgr->backend->bo_unmap(bo);
 	if (!ret) {
-		TBM_TRACE("error: bo(%p) map_cnt(%d)\n", bo, bo->map_cnt);
+		TBM_LOG_E("error: bo(%p) map_cnt(%d)\n", bo, bo->map_cnt);
 		_tbm_set_last_result(TBM_BO_ERROR_UNMAP_FAILED);
 		_tbm_bufmgr_mutex_unlock();
 		return ret;
@@ -1218,7 +1226,7 @@ tbm_bo_swap(tbm_bo bo1, tbm_bo bo2)
 
 	if (bufmgr->backend->bo_size(bo1) != bufmgr->backend->bo_size(bo2)) {
 		_tbm_set_last_result(TBM_BO_ERROR_SWAP_FAILED);
-		TBM_TRACE("error: bo1(%p) bo2(%p)\n", bo1, bo2);
+		TBM_LOG_E("error: bo1(%p) bo2(%p)\n", bo1, bo2);
 		_tbm_bufmgr_mutex_unlock();
 		return 0;
 	}
@@ -1245,7 +1253,7 @@ tbm_bo_locked(tbm_bo bo)
 	TBM_BUFMGR_RETURN_VAL_IF_FAIL(_tbm_bo_is_valid(bo), 0);
 
 	if (bufmgr->lock_type == LOCK_TRY_NEVER) {
-		TBM_TRACE("bo(%p) lock_cnt(%d)\n", bo, bo->lock_cnt);
+		TBM_LOG_E("bo(%p) lock_cnt(%d)\n", bo, bo->lock_cnt);
 		_tbm_bufmgr_mutex_unlock();
 		return 0;
 	}
@@ -1283,7 +1291,7 @@ tbm_bo_add_user_data(tbm_bo bo, unsigned long key,
 
 	data = user_data_create(key, data_free_func);
 	if (!data) {
-		TBM_TRACE("error: bo(%p) key(%lu)\n", bo, key);
+		TBM_LOG_E("error: bo(%p) key(%lu)\n", bo, key);
 		_tbm_bufmgr_mutex_unlock();
 		return 0;
 	}
@@ -1597,7 +1605,7 @@ tbm_bufmgr_debug_queue_dump(char *path, int count, int onoff)
 		TBM_LOG_D("path=%s count=%d onoff=%d\n", path, count, onoff);
 
 		if (_tbm_util_get_max_surface_size(&w, &h) == 0) {
-			TBM_LOG_I("Fail to get tbm_surface size.\n");
+			TBM_LOG_E("Fail to get tbm_surface size.\n");
 			pthread_mutex_unlock(&gLock);
 			return 0;
 		}
@@ -1623,7 +1631,7 @@ tbm_bufmgr_debug_dump_all(char *path)
 
 	count = _tbm_util_get_max_surface_size(&w, &h);
 	if (count == 0) {
-		TBM_LOG_I("No tbm_surface.\n");
+		TBM_LOG_E("No tbm_surface.\n");
 		pthread_mutex_unlock(&gLock);
 		return 1;
 	}
@@ -1680,7 +1688,7 @@ tbm_bufmgr_bind_native_display(tbm_bufmgr bufmgr, void *NativeDisplay)
 
 	ret = bufmgr->backend->bufmgr_bind_native_display(bufmgr, NativeDisplay);
 	if (!ret) {
-		TBM_TRACE("error: tbm_bufmgr(%p) NativeDisplay(%p)\n",
+		TBM_LOG_E("error: tbm_bufmgr(%p) NativeDisplay(%p)\n",
 				bufmgr, NativeDisplay);
 		_tbm_bufmgr_mutex_unlock();
 		return 0;
