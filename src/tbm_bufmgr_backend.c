@@ -43,8 +43,10 @@ tbm_bufmgr_backend tbm_backend_alloc(void)
 	tbm_bufmgr_backend bufmgr_backend;
 
 	bufmgr_backend = calloc(1, sizeof(struct _tbm_bufmgr_backend));
-	if (!bufmgr_backend)
+	if (!bufmgr_backend) {
+		TBM_LOG_E("error: fail to allocate the bufmgr_backend\n");
 		return NULL;
+	}
 
 	return bufmgr_backend;
 }
