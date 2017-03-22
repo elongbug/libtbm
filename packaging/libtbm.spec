@@ -65,8 +65,6 @@ make -C ut check
 
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/%{TZ_SYS_RO_SHARE}/license
-cp -af COPYING %{buildroot}/%{TZ_SYS_RO_SHARE}/license/%{name}
 %make_install
 
 
@@ -96,7 +94,7 @@ rm -f %{_unitdir_user}/basic.target.wants/tbm-drm-auth-user.path
 %files
 %manifest %{name}.manifest
 %defattr(-,root,root,-)
-%{TZ_SYS_RO_SHARE}/license/%{name}
+%license COPYING
 %{_libdir}/libtbm.so.*
 %{_unitdir}/tbm-drm-auth.path
 %{_unitdir}/tbm-drm-auth.service
